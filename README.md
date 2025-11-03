@@ -1,6 +1,6 @@
 # dejsipauzu
 
-Dej si pauzu - well-being aplikace
+Dej si pauzu - well-being aplikace pro mladé
 
 ## Getting Started
 
