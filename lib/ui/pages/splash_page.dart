@@ -80,6 +80,10 @@ class _SplashPageState extends State<SplashPage> with SingleTickerProviderStateM
             parent: _controller,
             curve: const Interval(0.35, 1.0, curve: Curves.easeOut),
           ).value;
+          final double taglineOpacity = CurvedAnimation(
+            parent: _controller,
+            curve: const Interval(0.55, 1.0, curve: Curves.easeOut),
+          ).value;
 
           return Container(
             width: double.infinity,
@@ -101,6 +105,15 @@ class _SplashPageState extends State<SplashPage> with SingleTickerProviderStateM
                   Stack(
                     alignment: Alignment.center,
                     children: <Widget>[
+                      // Rotating watermark behind glow
+                      Transform.rotate(
+                        angle: 6.28318 * t,
+                        child: Icon(
+                          Icons.filter_tilt_shift,
+                          size: 180,
+                          color: cs.primary.withOpacity(0.10),
+                        ),
+                      ),
                       // Soft radial glow pulse
                       Container(
                         width: 160,
@@ -137,6 +150,17 @@ class _SplashPageState extends State<SplashPage> with SingleTickerProviderStateM
                           style: Theme.of(context).textTheme.headlineMedium,
                         ),
                       ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Opacity(
+                    opacity: taglineOpacity,
+                    child: Text(
+                      'Zastav se. Nadechni. Všechno bude v pořádku.',
+                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                            color: cs.onSurface.withOpacity(0.6),
+                          ),
+                      textAlign: TextAlign.center,
                     ),
                   ),
                 ],

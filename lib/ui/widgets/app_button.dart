@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../foundations/motion.dart';
 import '../foundations/spacing.dart';
@@ -23,6 +24,12 @@ class AppButton extends StatefulWidget {
 
 class _AppButtonState extends State<AppButton> {
   bool _pressed = false;
+
+  void _handleTap() {
+    if (widget.onPressed == null) return;
+    HapticFeedback.lightImpact();
+    widget.onPressed!();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -54,7 +61,7 @@ class _AppButtonState extends State<AppButton> {
       child: InkWell
         (
         borderRadius: radius,
-        onTap: widget.onPressed,
+        onTap: _handleTap,
         onHighlightChanged: (bool v) => setState(() => _pressed = v),
         child: Padding(
           padding: const EdgeInsets.symmetric(

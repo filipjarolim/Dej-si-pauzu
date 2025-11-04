@@ -18,6 +18,13 @@ class _ListPageState extends State<ListPage> {
 
   void _toggle() => setState(() => _loading = !_loading);
 
+  Future<void> _refresh() async {
+    // No mock data is fetched; just a quick UI refresh gesture.
+    await Future<void>.delayed(const Duration(milliseconds: 700));
+    if (!mounted) return;
+    setState(() {});
+  }
+
   @override
   Widget build(BuildContext context) {
     return AppScaffold(
@@ -33,15 +40,19 @@ class _ListPageState extends State<ListPage> {
           ),
           const SizedBox(height: AppSpacing.lg),
           Expanded(
-            child: ListView.separated(
-              itemCount: 12,
-              separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.lg),
-              itemBuilder: (BuildContext context, int index) {
-                if (_loading) {
-                  return const _SkeletonListItem();
-                }
-                return const _ContentTile();
-              },
+            child: RefreshIndicator.adaptive(
+              onRefresh: _refresh,
+              child: ListView.separated(
+                physics: const AlwaysScrollableScrollPhysics(),
+                itemCount: 12,
+                separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.lg),
+                itemBuilder: (BuildContext context, int index) {
+                  if (_loading) {
+                    return const _SkeletonListItem();
+                  }
+                  return const _ContentTile();
+                },
+              ),
             ),
           ),
         ],
