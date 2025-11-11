@@ -1,5 +1,6 @@
 import java.util.Properties
 import java.io.FileInputStream
+import org.gradle.api.GradleException
 
 plugins {
     id("com.android.application")
@@ -10,8 +11,9 @@ plugins {
 
 // Load release signing credentials if present
 val keystoreProperties = Properties()
-val keystorePropertiesFile = rootProject.file("android/key.properties")
-if (keystorePropertiesFile.exists()) {
+val keystorePropertiesFile = rootProject.file("key.properties")
+val hasKeystore = keystorePropertiesFile.exists()
+if (hasKeystore) {
     keystoreProperties.load(FileInputStream(keystorePropertiesFile))
 }
 
@@ -42,7 +44,7 @@ android {
 
     signingConfigs {
         create("release") {
-            if (keystorePropertiesFile.exists()) {
+            if (hasKeystore) {
                 val storeFilePath = keystoreProperties["storeFile"] as String?
                 if (storeFilePath != null) {
                     storeFile = file(storeFilePath)
@@ -56,11 +58,11 @@ android {
 
     buildTypes {
         release {
-            // Use real release signing if key.properties is present; otherwise fall back to debug signing.
-            signingConfig = if (keystorePropertiesFile.exists())
-                signingConfigs.getByName("release")
-            else
-                signingConfigs.getByName("debug")
+            // Enforce proper release signing for Play upload
+            if (!hasKeystore) {
+                throw GradleException("Missing android/key.properties for release signing. Create it and point to your upload keystore.")
+            }
+            signingConfig = signingConfigs.getByName("release")
         }
     }
 }

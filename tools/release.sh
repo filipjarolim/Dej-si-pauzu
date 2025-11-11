@@ -77,6 +77,15 @@ fi
 echo "== Building Android App Bundle (.aab) =="
 (
   cd "$PROJECT_DIR"
+  if [[ ! -f "$PROJECT_DIR/android/key.properties" ]]; then
+    echo "error: android/key.properties missing. Create it for release signing." >&2
+    echo "       Example:" >&2
+    echo "       storePassword=YOUR_STORE_PASSWORD" >&2
+    echo "       keyPassword=YOUR_KEY_PASSWORD" >&2
+    echo "       keyAlias=upload" >&2
+    echo "       storeFile=/absolute/path/to/upload-keystore.jks" >&2
+    exit 1
+  fi
   flutter build appbundle --release -t lib/main.dart
 )
 
