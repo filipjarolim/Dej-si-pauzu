@@ -7,6 +7,7 @@ import 'package:flutter/scheduler.dart';
 import 'package:go_router/go_router.dart';
 import 'router/app_router.dart';
 import 'debug/perf.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -51,29 +52,52 @@ class MyApp extends StatelessWidget {
       scrollBehavior: const AppScrollBehavior(),
       theme: ThemeData(
         useMaterial3: true,
-        // iOS-like smoothness with slightly more rounded components and reduced visual noise.
+        scaffoldBackgroundColor: Colors.white,
+        colorScheme: const ColorScheme.light(
+          primary: Colors.black,
+          onPrimary: Colors.white,
+          surface: Colors.white,
+          onSurface: Colors.black,
+          secondary: Colors.black87,
+          onSecondary: Colors.white,
+          background: Colors.white,
+          onBackground: Colors.black,
+        ),
         appBarTheme: const AppBarTheme(
           centerTitle: true,
           elevation: 0,
           scrolledUnderElevation: 0,
           surfaceTintColor: Colors.transparent,
+          backgroundColor: Colors.white,
+          foregroundColor: Colors.black,
         ),
         cardTheme: CardThemeData(
           elevation: 0,
           margin: const EdgeInsets.all(0),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: const BorderSide(color: Colors.black, width: 2)),
+          color: Colors.white,
         ),
         dialogTheme: DialogThemeData(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24), side: const BorderSide(color: Colors.black, width: 2)),
+          backgroundColor: Colors.white,
         ),
         snackBarTheme: SnackBarThemeData(
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          backgroundColor: Colors.black,
+          contentTextStyle: const TextStyle(color: Colors.white),
         ),
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
+          fillColor: Colors.white,
           isDense: true,
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Colors.black, width: 1.5)),
+          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Colors.black, width: 1.5)),
+          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Colors.black, width: 2)),
+        ),
+        textTheme: GoogleFonts.quicksandTextTheme().apply(
+          bodyColor: Colors.black,
+          displayColor: Colors.black,
         ),
         pageTransitionsTheme: const PageTransitionsTheme(
           builders: <TargetPlatform, PageTransitionsBuilder>{

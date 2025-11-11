@@ -14,6 +14,7 @@ class ExpressiveCard extends StatefulWidget {
     this.onTap,
     this.showWatermark = false,
     this.watermarkIcon,
+    this.plain = false,
   });
 
   final String title;
@@ -23,6 +24,7 @@ class ExpressiveCard extends StatefulWidget {
   final VoidCallback? onTap;
   final bool showWatermark;
   final IconData? watermarkIcon;
+  final bool plain; // when true: white background, black outlines playful style
 
   @override
   State<ExpressiveCard> createState() => _ExpressiveCardState();
@@ -41,6 +43,8 @@ class _ExpressiveCardState extends State<ExpressiveCard> {
   Widget build(BuildContext context) {
     final TextTheme text = Theme.of(context).textTheme;
     final ColorScheme cs = Theme.of(context).colorScheme;
+    final bool plain = widget.plain;
+    final Color fg = plain ? Colors.black : Colors.white;
 
     final Widget content = ClipRRect(
       borderRadius: BorderRadius.circular(24),
@@ -49,17 +53,21 @@ class _ExpressiveCardState extends State<ExpressiveCard> {
         child: InkWell(
           onTap: _handleTap,
           onHighlightChanged: (bool v) => setState(() => _pressed = v),
-          splashColor: cs.onPrimary.withOpacity(0.08),
+          splashColor: (plain ? Colors.black : cs.onPrimary).withOpacity(0.08),
           highlightColor: Colors.transparent,
           child: Ink(
             height: 140,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(24),
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: widget.colors,
-              ),
+              color: plain ? Colors.white : null,
+              border: plain ? Border.all(color: Colors.black, width: 2) : null,
+              gradient: plain
+                  ? null
+                  : LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: widget.colors,
+                    ),
             ),
             child: Stack(
               fit: StackFit.expand,
@@ -82,7 +90,7 @@ class _ExpressiveCardState extends State<ExpressiveCard> {
                             height: 0.9,
                             letterSpacing: -1.0,
                             fontWeight: FontWeight.w800,
-                            color: Colors.white.withOpacity(0.20),
+                            color: (plain ? Colors.black : Colors.white).withOpacity(plain ? 0.04 : 0.20),
                           ),
                         ),
                       ),
@@ -98,10 +106,14 @@ class _ExpressiveCardState extends State<ExpressiveCard> {
                       width: 44,
                       height: 44,
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.18),
+                        color: plain ? Colors.black.withOpacity(0.06) : Colors.white.withOpacity(0.18),
                         shape: BoxShape.circle,
+                        border: plain ? Border.all(color: Colors.black, width: 1.5) : null,
                       ),
-                      child: Icon((widget.watermarkIcon ?? widget.icon), color: Colors.black.withOpacity(0.55)),
+                      child: Icon(
+                        (widget.watermarkIcon ?? widget.icon),
+                        color: plain ? Colors.black : Colors.black.withOpacity(0.55),
+                      ),
                     ),
                   ),
                 // Foreground header row with small icon + subtitle
@@ -114,10 +126,11 @@ class _ExpressiveCardState extends State<ExpressiveCard> {
                         width: 44,
                         height: 44,
                         decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.10),
+                          color: plain ? Colors.white : Colors.black.withOpacity(0.10),
                           borderRadius: BorderRadius.circular(12),
+                          border: plain ? Border.all(color: Colors.black, width: 1.5) : null,
                         ),
-                        child: Icon(widget.icon, color: Colors.white),
+                        child: Icon(widget.icon, color: fg),
                       ),
                       const SizedBox(width: AppSpacing.lg),
                       Expanded(
@@ -127,7 +140,7 @@ class _ExpressiveCardState extends State<ExpressiveCard> {
                             Text(
                               widget.subtitle,
                               style: text.titleLarge!.copyWith(
-                                color: Colors.white,
+                                color: fg,
                                 fontWeight: FontWeight.w700,
                               ),
                               maxLines: 1,
@@ -137,7 +150,7 @@ class _ExpressiveCardState extends State<ExpressiveCard> {
                             Text(
                               widget.title,
                               style: text.labelLarge!.copyWith(
-                                color: Colors.white.withOpacity(0.85),
+                                color: fg.withOpacity(plain ? 0.85 : 0.85),
                                 letterSpacing: 0.2,
                               ),
                               maxLines: 1,
