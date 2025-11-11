@@ -19,20 +19,39 @@ class AppScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: appBar,
-      body: SafeArea(
-        child: Padding(
-          padding: padding,
-          child: AnimatedSwitcher(
-            duration: const Duration(milliseconds: 240),
-            switchInCurve: Curves.easeOutCubic,
-            switchOutCurve: Curves.easeInCubic,
-            child: body,
+    return Stack(
+      children: <Widget>[
+        // Playful soft gradient background, mostly light tones
+        const DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: <Color>[
+                Color(0xFFF7F3FF), // soft lilac
+                Color(0xFFFDF6F0), // warm off-white
+                Color(0xFFF1FAF0), // soft mint
+              ],
+            ),
           ),
         ),
-      ),
-      bottomNavigationBar: bottomBar,
+        Scaffold(
+          backgroundColor: Colors.transparent,
+          appBar: appBar,
+          body: SafeArea(
+            child: Padding(
+              padding: padding,
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 240),
+                switchInCurve: Curves.easeOutCubic,
+                switchOutCurve: Curves.easeInCubic,
+                child: body,
+              ),
+            ),
+          ),
+          bottomNavigationBar: bottomBar,
+        ),
+      ],
     );
   }
 }
