@@ -1,6 +1,8 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
+import '../foundations/colors.dart';
+
 class ProgressRing extends StatelessWidget {
   const ProgressRing({super.key, required this.progress, this.size = 180, this.stroke = 14});
 
@@ -10,29 +12,32 @@ class ProgressRing extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return TweenAnimationBuilder<double>(
-      duration: const Duration(milliseconds: 800),
-      curve: Curves.easeOutCubic,
-      tween: Tween<double>(begin: 0, end: progress.clamp(0.0, 1.0)),
-      builder: (BuildContext context, double value, Widget? _) {
-        return CustomPaint(
-          size: Size.square(size),
-          painter: _RingPainter(
-            value: value,
-            stroke: stroke,
-            trackColor: Colors.black.withOpacity(0.08),
-            gradient: const SweepGradient(
-              startAngle: -math.pi / 2,
-              endAngle: 3 * math.pi / 2,
-              colors: <Color>[
-                Color(0xFF34D399), // mint
-                Color(0xFF60A5FA), // soft blue
-                Color(0xFFFB7185), // soft coral
-              ],
+    return RepaintBoundary(
+      child: TweenAnimationBuilder<double>(
+        duration: const Duration(milliseconds: 600), // Faster for smoother feel
+        curve: Curves.easeOutCubic,
+        tween: Tween<double>(begin: 0, end: progress.clamp(0.0, 1.0)),
+        builder: (BuildContext context, double value, Widget? _) {
+          return CustomPaint(
+            size: Size.square(size),
+            painter: _RingPainter(
+              value: value,
+              stroke: stroke,
+              trackColor: AppColors.gray200,
+              gradient: const SweepGradient(
+                startAngle: -math.pi / 2,
+                endAngle: 3 * math.pi / 2,
+                colors: <Color>[
+                  AppColors.mintGreen,
+                  AppColors.skyBlue,
+                  AppColors.pink,
+                  AppColors.yellow,
+                ],
+              ),
             ),
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 }

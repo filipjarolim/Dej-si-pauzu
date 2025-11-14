@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 
 import '../foundations/motion.dart';
 import '../foundations/spacing.dart';
+import '../foundations/design_tokens.dart';
+import '../foundations/colors.dart';
 
 class AppButton extends StatefulWidget {
   const AppButton({
@@ -33,11 +35,10 @@ class _AppButtonState extends State<AppButton> {
 
   @override
   Widget build(BuildContext context) {
-    final ColorScheme colorScheme = Theme.of(context).colorScheme;
     final TextStyle textStyle = Theme.of(context)
         .textTheme
         .labelLarge!
-        .copyWith(color: colorScheme.onPrimary);
+        .copyWith(color: AppColors.white);
 
     final Widget content = Row(
       mainAxisSize: MainAxisSize.min,
@@ -47,37 +48,47 @@ class _AppButtonState extends State<AppButton> {
           widget.leading!,
           const SizedBox(width: AppSpacing.sm),
         },
-        Text(widget.label, style: textStyle),
+        Text(
+          widget.label,
+          style: textStyle.copyWith(
+            fontWeight: FontWeight.w700,
+          ),
+        ),
       ],
     );
 
-    final BorderRadius radius = BorderRadius.circular(18);
+    final BorderRadius radius = BorderRadius.circular(DesignTokens.radiusMd);
 
     final Widget button = Material(
       color: widget.onPressed == null
-          ? colorScheme.primary.withOpacity(0.5)
-          : colorScheme.primary,
+          ? AppColors.primary.withOpacity(0.4)
+          : AppColors.primary,
       borderRadius: radius,
-      child: InkWell
-        (
+      elevation: widget.onPressed == null ? 0 : 2,
+      shadowColor: AppColors.black.withOpacity(0.1),
+      child: InkWell(
         borderRadius: radius,
         onTap: _handleTap,
         onHighlightChanged: (bool v) => setState(() => _pressed = v),
+        splashColor: AppColors.white.withOpacity(0.1),
+        highlightColor: Colors.transparent,
         child: Padding(
           padding: const EdgeInsets.symmetric(
             horizontal: AppSpacing.xl,
-            vertical: AppSpacing.md,
+            vertical: AppSpacing.md + 2,
           ),
           child: content,
         ),
       ),
     );
 
-    final Widget animated = AnimatedScale(
-      scale: _pressed ? 0.98 : 1.0,
-      duration: AppMotion.fast,
-      curve: AppMotion.emphasized,
-      child: button,
+    final Widget animated = RepaintBoundary(
+      child: AnimatedScale(
+        scale: _pressed ? 0.97 : 1.0,
+        duration: AppMotion.fast,
+        curve: AppMotion.smooth, // Smoother curve
+        child: button,
+      ),
     );
 
     if (widget.expanded) {

@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 
 import '../foundations/motion.dart';
 import '../foundations/spacing.dart';
+import '../foundations/design_tokens.dart';
+import '../foundations/colors.dart';
 
 class ExpressiveCard extends StatefulWidget {
   const ExpressiveCard({
@@ -44,23 +46,29 @@ class _ExpressiveCardState extends State<ExpressiveCard> {
     final TextTheme text = Theme.of(context).textTheme;
     final ColorScheme cs = Theme.of(context).colorScheme;
     final bool plain = widget.plain;
-    final Color fg = plain ? Colors.black : Colors.white;
+    final Color fg = plain ? AppColors.black : AppColors.white;
 
     final Widget content = ClipRRect(
-      borderRadius: BorderRadius.circular(24),
+      borderRadius: BorderRadius.circular(DesignTokens.radiusXl),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
           onTap: _handleTap,
           onHighlightChanged: (bool v) => setState(() => _pressed = v),
-          splashColor: (plain ? Colors.black : cs.onPrimary).withOpacity(0.08),
+          splashColor: (plain ? AppColors.primary : cs.onPrimary).withOpacity(0.08),
           highlightColor: Colors.transparent,
           child: Ink(
             height: 140,
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(24),
-              color: plain ? Colors.white : null,
-              border: plain ? Border.all(color: Colors.black, width: 2) : null,
+              borderRadius: BorderRadius.circular(DesignTokens.radiusLg),
+              color: plain ? AppColors.white : null,
+              border: plain
+                  ? Border.all(
+                      color: AppColors.gray300.withOpacity(0.6),
+                      width: DesignTokens.borderMedium,
+                    )
+                  : null,
+              boxShadow: plain ? DesignTokens.shadowMd : null,
               gradient: plain
                   ? null
                   : LinearGradient(
@@ -90,7 +98,7 @@ class _ExpressiveCardState extends State<ExpressiveCard> {
                             height: 0.9,
                             letterSpacing: -1.0,
                             fontWeight: FontWeight.w800,
-                            color: (plain ? Colors.black : Colors.white).withOpacity(plain ? 0.04 : 0.20),
+                            color: (plain ? AppColors.black : AppColors.white).withOpacity(plain ? 0.04 : 0.20),
                           ),
                         ),
                       ),
@@ -100,19 +108,29 @@ class _ExpressiveCardState extends State<ExpressiveCard> {
                 // Optional watermark icon at bottom-right
                 if (widget.showWatermark)
                   Positioned(
-                    right: 12,
-                    bottom: 12,
+                    right: 16,
+                    bottom: 16,
                     child: Container(
-                      width: 44,
-                      height: 44,
+                      width: 48,
+                      height: 48,
                       decoration: BoxDecoration(
-                        color: plain ? Colors.black.withOpacity(0.06) : Colors.white.withOpacity(0.18),
+                        color: plain
+                            ? AppColors.black.withOpacity(0.04)
+                            : AppColors.white.withOpacity(0.15),
                         shape: BoxShape.circle,
-                        border: plain ? Border.all(color: Colors.black, width: 1.5) : null,
+                        border: plain
+                            ? Border.all(
+                                color: AppColors.black.withOpacity(0.08),
+                                width: DesignTokens.borderThin,
+                              )
+                            : null,
                       ),
                       child: Icon(
                         (widget.watermarkIcon ?? widget.icon),
-                        color: plain ? Colors.black : Colors.black.withOpacity(0.55),
+                        size: DesignTokens.iconMd,
+                        color: plain
+                            ? AppColors.black.withOpacity(0.3)
+                            : AppColors.black.withOpacity(0.5),
                       ),
                     ),
                   ),
@@ -123,14 +141,25 @@ class _ExpressiveCardState extends State<ExpressiveCard> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
                       Container(
-                        width: 44,
-                        height: 44,
+                        width: DesignTokens.containerMd,
+                        height: DesignTokens.containerMd,
                         decoration: BoxDecoration(
-                          color: plain ? Colors.white : Colors.black.withOpacity(0.10),
-                          borderRadius: BorderRadius.circular(12),
-                          border: plain ? Border.all(color: Colors.black, width: 1.5) : null,
+                          color: plain
+                              ? AppColors.primary.withOpacity(0.08)
+                              : AppColors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(DesignTokens.radiusSm),
+                          border: plain
+                              ? Border.all(
+                                  color: AppColors.primary.withOpacity(0.15),
+                                  width: DesignTokens.borderThin,
+                                )
+                              : null,
                         ),
-                        child: Icon(widget.icon, color: fg),
+                        child: Icon(
+                          widget.icon,
+                          size: DesignTokens.iconMd,
+                          color: plain ? AppColors.primary : fg.withOpacity(0.9),
+                        ),
                       ),
                       const SizedBox(width: AppSpacing.lg),
                       Expanded(
@@ -169,11 +198,13 @@ class _ExpressiveCardState extends State<ExpressiveCard> {
       ),
     );
 
-    return AnimatedScale(
-      scale: _pressed ? 0.98 : 1.0,
-      duration: AppMotion.fast,
-      curve: AppMotion.emphasized,
-      child: content,
+    return RepaintBoundary(
+      child: AnimatedScale(
+        scale: _pressed ? 0.97 : 1.0,
+        duration: AppMotion.fast,
+        curve: AppMotion.smooth, // Optimized for performance
+        child: content,
+      ),
     );
   }
 }

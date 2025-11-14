@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../foundations/spacing.dart';
+import '../foundations/design_tokens.dart';
+import '../foundations/colors.dart';
 import 'tag_chip.dart';
 
 class PlanItem extends StatelessWidget {
@@ -21,24 +23,38 @@ class PlanItem extends StatelessWidget {
     final ColorScheme cs = ((Theme.of(context)).colorScheme);
     final TextTheme text = ((Theme.of(context)).textTheme);
     return Material(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(18),
+      color: AppColors.white,
+      borderRadius: BorderRadius.circular(DesignTokens.radiusMd),
       elevation: 0,
+      shadowColor: AppColors.black.withOpacity(0.04),
       child: InkWell(
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(DesignTokens.radiusMd),
         onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        splashColor: AppColors.primary.withOpacity(0.08),
+        highlightColor: Colors.transparent,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(DesignTokens.radiusMd),
+            border: Border.all(
+              color: AppColors.gray200,
+              width: DesignTokens.borderThin,
+            ),
+          ),
           child: Row(
             children: <Widget>[
               Container(
-                width: 34,
-                height: 34,
+                width: DesignTokens.containerSm,
+                height: DesignTokens.containerSm,
                 decoration: BoxDecoration(
-                  color: cs.primary.withOpacity(0.06),
+                  color: AppColors.primary.withOpacity(0.1),
                   shape: BoxShape.circle,
+                  border: Border.all(
+                    color: AppColors.primary.withOpacity(0.2),
+                    width: DesignTokens.borderThin,
+                  ),
                 ),
-                child: Icon(icon, size: 18, color: cs.primary),
+                child: Icon(icon, size: DesignTokens.iconSm, color: AppColors.primary),
               ),
               const SizedBox(width: AppSpacing.md),
               Expanded(
@@ -47,18 +63,21 @@ class PlanItem extends StatelessWidget {
                   children: <Widget>[
                     Text(
                       title,
-                      style: text.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
+                      style: text.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: -0.2,
+                      ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
                     if (badge != null) ...[
-                      const SizedBox(height: 6),
+                      const SizedBox(height: 8),
                       Align(
                         alignment: Alignment.centerLeft,
                         child: TagChip(
                           label: badge!,
-                          background: cs.secondaryContainer.withOpacity(0.6),
-                          foreground: cs.onSecondaryContainer,
+                          background: AppColors.primary.withOpacity(0.1),
+                          foreground: AppColors.primary,
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                         ),
                       ),
@@ -66,8 +85,12 @@ class PlanItem extends StatelessWidget {
                   ],
                 ),
               ),
-              const SizedBox(width: AppSpacing.md),
-              Icon(Icons.chevron_right_rounded, color: cs.onSurface.withOpacity(0.4)),
+              const SizedBox(width: AppSpacing.sm),
+              Icon(
+                Icons.chevron_right_rounded,
+                size: 20,
+                color: cs.onSurface.withOpacity(0.3),
+              ),
             ],
           ),
         ),

@@ -8,6 +8,8 @@ import 'package:go_router/go_router.dart';
 import 'router/app_router.dart';
 import 'debug/perf.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'ui/foundations/colors.dart';
+import 'ui/foundations/design_tokens.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -45,59 +47,226 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Enable debug frame timings log to observe jank during development.
-    PerfDebugTools.enableFrameTimingsLogging();
+    if (kDebugMode) {
+      PerfDebugTools.enableFrameTimingsLogging();
+    }
     return MaterialApp.router(
       title: 'Dej si pauzu',
       debugShowCheckedModeBanner: false,
       scrollBehavior: const AppScrollBehavior(),
       theme: ThemeData(
         useMaterial3: true,
-        scaffoldBackgroundColor: Colors.white,
-        colorScheme: const ColorScheme.light(
-          primary: Colors.black,
-          onPrimary: Colors.white,
-          surface: Colors.white,
-          onSurface: Colors.black,
-          secondary: Colors.black87,
-          onSecondary: Colors.white,
-          background: Colors.white,
-          onBackground: Colors.black,
-        ),
-        appBarTheme: const AppBarTheme(
+        scaffoldBackgroundColor: AppColors.white,
+        colorScheme: AppColorScheme.light,
+        appBarTheme: AppBarTheme(
           centerTitle: true,
           elevation: 0,
           scrolledUnderElevation: 0,
           surfaceTintColor: Colors.transparent,
-          backgroundColor: Colors.white,
-          foregroundColor: Colors.black,
+          backgroundColor: AppColors.white,
+          foregroundColor: AppColors.black,
+          titleTextStyle: GoogleFonts.quicksand(
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
+            color: AppColors.black,
+            letterSpacing: -0.5,
+          ),
         ),
         cardTheme: CardThemeData(
           elevation: 0,
-          margin: const EdgeInsets.all(0),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: const BorderSide(color: Colors.black, width: 2)),
-          color: Colors.white,
+          margin: EdgeInsets.zero,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(DesignTokens.radiusLg),
+            side: BorderSide(
+              color: AppColors.gray300.withOpacity(0.5),
+              width: DesignTokens.borderMedium,
+            ),
+          ),
+          color: AppColors.white,
         ),
         dialogTheme: DialogThemeData(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24), side: const BorderSide(color: Colors.black, width: 2)),
-          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(DesignTokens.radiusXl),
+            side: BorderSide(
+              color: AppColors.gray300,
+              width: DesignTokens.borderMedium,
+            ),
+          ),
+          backgroundColor: AppColors.white,
+          elevation: 8,
         ),
         snackBarTheme: SnackBarThemeData(
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-          backgroundColor: Colors.black,
-          contentTextStyle: const TextStyle(color: Colors.white),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(DesignTokens.radiusMd),
+            side: BorderSide(
+              color: AppColors.gray300,
+              width: DesignTokens.borderMedium,
+            ),
+          ),
+          backgroundColor: AppColors.white,
+          contentTextStyle: GoogleFonts.quicksand(
+            color: AppColors.black,
+            fontWeight: FontWeight.w600,
+          ),
         ),
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
-          fillColor: Colors.white,
+          fillColor: AppColors.white,
           isDense: true,
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Colors.black, width: 1.5)),
-          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Colors.black, width: 1.5)),
-          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Colors.black, width: 2)),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(DesignTokens.radiusMd),
+            borderSide: BorderSide(
+              color: AppColors.gray300,
+              width: DesignTokens.borderMedium,
+            ),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(DesignTokens.radiusMd),
+            borderSide: BorderSide(
+              color: AppColors.gray300,
+              width: DesignTokens.borderMedium,
+            ),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(DesignTokens.radiusMd),
+            borderSide: BorderSide(
+              color: AppColors.primary,
+              width: DesignTokens.borderThick,
+            ),
+          ),
+          labelStyle: GoogleFonts.quicksand(
+            color: AppColors.gray600,
+            fontWeight: FontWeight.w600,
+          ),
+          hintStyle: GoogleFonts.quicksand(
+            color: AppColors.gray500,
+          ),
         ),
-        textTheme: GoogleFonts.quicksandTextTheme().apply(
-          bodyColor: Colors.black,
-          displayColor: Colors.black,
+        textTheme: GoogleFonts.quicksandTextTheme().copyWith(
+          displayLarge: GoogleFonts.quicksand(
+            fontSize: 57,
+            fontWeight: FontWeight.w800,
+            letterSpacing: -1.5,
+            height: 1.1,
+          ),
+          displayMedium: GoogleFonts.quicksand(
+            fontSize: 45,
+            fontWeight: FontWeight.w800,
+            letterSpacing: -1,
+            height: 1.15,
+          ),
+          displaySmall: GoogleFonts.quicksand(
+            fontSize: 36,
+            fontWeight: FontWeight.w800,
+            letterSpacing: -0.5,
+            height: 1.2,
+          ),
+          headlineLarge: GoogleFonts.quicksand(
+            fontSize: 32,
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.5,
+            height: 1.2,
+          ),
+          headlineMedium: GoogleFonts.quicksand(
+            fontSize: 28,
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.5,
+            height: 1.25,
+          ),
+          headlineSmall: GoogleFonts.quicksand(
+            fontSize: 24,
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.3,
+            height: 1.3,
+          ),
+          titleLarge: GoogleFonts.quicksand(
+            fontSize: 22,
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.3,
+            height: 1.3,
+          ),
+          titleMedium: GoogleFonts.quicksand(
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.2,
+            height: 1.35,
+          ),
+          titleSmall: GoogleFonts.quicksand(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0,
+            height: 1.4,
+          ),
+          bodyLarge: GoogleFonts.quicksand(
+            fontSize: 16,
+            fontWeight: FontWeight.w500,
+            letterSpacing: 0,
+            height: 1.5,
+          ),
+          bodyMedium: GoogleFonts.quicksand(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            letterSpacing: 0.1,
+            height: 1.5,
+          ),
+          bodySmall: GoogleFonts.quicksand(
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+            letterSpacing: 0.2,
+            height: 1.5,
+          ),
+          labelLarge: GoogleFonts.quicksand(
+            fontSize: 14,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.3,
+            height: 1.4,
+          ),
+          labelMedium: GoogleFonts.quicksand(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0.3,
+            height: 1.4,
+          ),
+          labelSmall: GoogleFonts.quicksand(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0.4,
+            height: 1.4,
+          ),
+        ).apply(
+          bodyColor: AppColors.black,
+          displayColor: AppColors.black,
+        ),
+        navigationBarTheme: NavigationBarThemeData(
+          backgroundColor: AppColors.white,
+          elevation: 0,
+          indicatorColor: AppColors.primary.withOpacity(0.1),
+          labelTextStyle: MaterialStateProperty.resolveWith<TextStyle?>(
+            (Set<MaterialState> states) {
+              if (states.contains(MaterialState.selected)) {
+                return GoogleFonts.quicksand(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.primary,
+                );
+              }
+              return GoogleFonts.quicksand(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: AppColors.gray600,
+              );
+            },
+          ),
+          iconTheme: MaterialStateProperty.resolveWith<IconThemeData?>(
+            (Set<MaterialState> states) {
+              if (states.contains(MaterialState.selected)) {
+                return const IconThemeData(color: AppColors.primary);
+              }
+              return IconThemeData(color: AppColors.gray600);
+            },
+          ),
         ),
         pageTransitionsTheme: const PageTransitionsTheme(
           builders: <TargetPlatform, PageTransitionsBuilder>{

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 
+import '../../core/constants/app_constants.dart';
+import '../../core/extensions/build_context_extensions.dart';
+import '../../core/constants/app_routes.dart';
 import '../foundations/spacing.dart';
 import '../widgets/app_button.dart';
 import '../widgets/app_loading.dart';
@@ -10,6 +12,9 @@ import '../widgets/expressive_card.dart';
 import '../widgets/progress_ring.dart';
 import '../widgets/plan_item.dart';
 import '../widgets/tag_chip.dart';
+import '../widgets/custom_refresh_indicator.dart';
+import '../foundations/design_tokens.dart';
+import '../foundations/colors.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -29,7 +34,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _refresh() async {
-    await Future<void>.delayed(const Duration(milliseconds: 700));
+    await Future<void>.delayed(AppConstants.refreshDelay);
     if (!mounted) return;
     setState(() {});
   }
@@ -39,49 +44,63 @@ class _HomePageState extends State<HomePage> {
     final ColorScheme cs = Theme.of(context).colorScheme;
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: <BoxShadow>[
-          BoxShadow(
-            color: Colors.black.withOpacity(0.06),
-            blurRadius: 24,
-            offset: const Offset(0, 12),
-          ),
-        ],
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(DesignTokens.radiusLg),
+        border: Border.all(
+          color: AppColors.gray200,
+          width: DesignTokens.borderMedium,
+        ),
+        boxShadow: DesignTokens.shadowMd,
       ),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       child: Row(
         children: <Widget>[
           Expanded(
             flex: 0,
             child: Padding(
-              padding: const EdgeInsets.only(right: 16.0),
-              child: const ProgressRing(progress: 0.68, size: 120, stroke: 12),
+              padding: const EdgeInsets.only(right: 20.0),
+              child: const ProgressRing(progress: 0.68, size: 100, stroke: 10),
             ),
           ),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                Text('Ahoj!', style: text.titleLarge),
-                const SizedBox(height: 8),
+                Text(
+                  'Ahoj!',
+                  style: text.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.5,
+                  ),
+                ),
+                const SizedBox(height: 10),
                 Text(
                   'Pokračuj v cestě za klidem. Krátká pauza tě čeká kdykoliv.',
-                  style: text.bodyMedium,
+                  style: text.bodyMedium?.copyWith(
+                    color: cs.onSurfaceVariant,
+                    height: 1.5,
+                  ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 16),
                 Align(
                   alignment: Alignment.centerLeft,
-                  child: TextButton.icon(
-                    style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      backgroundColor: cs.primary.withOpacity(0.06),
-                      foregroundColor: cs.primary,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    child: TextButton.icon(
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                        backgroundColor: AppColors.primary.withOpacity(0.1),
+                        foregroundColor: AppColors.primary,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(DesignTokens.radiusSm),
+                        ),
+                      ),
+                    onPressed: () => context.navigateToPause(),
+                    icon: const Icon(Icons.play_arrow_rounded, size: 20),
+                    label: Text(
+                      'Začít pauzu',
+                      style: text.labelLarge?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
-                    onPressed: () => context.push('/pause'),
-                    icon: const Icon(Icons.play_arrow_rounded),
-                    label: const Text('Začít pauzu'),
                   ),
                 ),
               ],
@@ -100,17 +119,38 @@ class _HomePageState extends State<HomePage> {
       children: <Widget>[
         AppScaffold(
           appBar: AppBar(
-            leading: const Hero(tag: 'app-logo', child: Icon(Icons.self_improvement)),
+            leading: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(DesignTokens.radiusSm),
+                onTap: () => context.navigateToProfile(),
+                child: const Padding(
+                  padding: EdgeInsets.all(8.0),
+                  child: Hero(
+                    tag: 'app-logo',
+                    child: Icon(Icons.self_improvement, size: 24),
+                  ),
+                ),
+              ),
+            ),
             title: const Text('Domů'),
             actions: <Widget>[
-              IconButton(
-                icon: const Icon(Icons.more_horiz_rounded),
-                onPressed: () {},
-              )
+              Material(
+                color: Colors.transparent,
+                child: InkWell(
+                borderRadius: BorderRadius.circular(DesignTokens.radiusSm),
+                onTap: () => context.navigateToSettings(),
+                  child: const Padding(
+                    padding: EdgeInsets.all(8.0),
+                    child: Icon(Icons.more_horiz_rounded, size: 24),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 4),
             ],
           ),
           bottomBar: const AppBottomNav(),
-          body: RefreshIndicator.adaptive(
+          body: CustomRefreshIndicator(
             onRefresh: _refresh,
             child: ListView(
               physics: const AlwaysScrollableScrollPhysics(),
@@ -120,30 +160,65 @@ class _HomePageState extends State<HomePage> {
                 Row(
                   children: <Widget>[
                     Expanded(
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(20),
-                          boxShadow: <BoxShadow>[
-                            BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 14, offset: const Offset(0, 6)),
-                          ],
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: <Widget>[
-                            const Icon(Icons.psychology_alt, size: 18),
-                            const SizedBox(width: 8),
-                            Text('Chat s Parťákem', style: text.labelLarge),
-                          ],
+                    child: Material(
+                      color: AppColors.white,
+                      borderRadius: BorderRadius.circular(DesignTokens.radiusMd),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(DesignTokens.radiusMd),
+                      onTap: () => context.navigateToPartner(),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(DesignTokens.radiusMd),
+                            border: Border.all(
+                              color: AppColors.gray200,
+                              width: DesignTokens.borderThin,
+                            ),
+                          ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: <Widget>[
+                                Icon(
+                                  Icons.psychology_alt,
+                                  size: DesignTokens.iconSm,
+                                  color: AppColors.primary,
+                                ),
+                                const SizedBox(width: 10),
+                                Text(
+                                  'Chat s Parťákem',
+                                  style: text.labelLarge?.copyWith(
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    IconButton(
-                      onPressed: () {},
-                      icon: const Icon(Icons.settings_rounded),
-                      tooltip: 'Nastavení',
+                    const SizedBox(width: 10),
+                    Material(
+                      color: AppColors.white,
+                      borderRadius: BorderRadius.circular(DesignTokens.radiusSm),
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(DesignTokens.radiusSm),
+                        onTap: () => context.navigateToSettings(),
+                        child: Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(DesignTokens.radiusSm),
+                            border: Border.all(
+                              color: AppColors.gray200,
+                              width: DesignTokens.borderThin,
+                            ),
+                          ),
+                          child: Icon(
+                            Icons.settings_rounded,
+                            size: DesignTokens.iconSm,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -154,14 +229,37 @@ class _HomePageState extends State<HomePage> {
                 Row(
                   children: <Widget>[
                     Expanded(
-                      child: Text(
-                        'Dnešní plán  ·  7 min',
-                        style: text.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: <Widget>[
+                          Text(
+                            'Dnešní plán',
+                            style: text.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: -0.3,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '7 min',
+                            style: text.bodySmall?.copyWith(
+                              color: cs.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                     TextButton(
                       onPressed: () {},
-                      child: const Text('Upravit'),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      ),
+                      child: Text(
+                        'Upravit',
+                        style: text.labelLarge?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -178,15 +276,21 @@ class _HomePageState extends State<HomePage> {
                   icon: Icons.mood,
                 ),
                 const SizedBox(height: AppSpacing.xl),
-                Text('Doporučení', style: text.titleMedium),
+                Text(
+                  'Doporučení',
+                  style: text.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.3,
+                  ),
+                ),
                 const SizedBox(height: AppSpacing.md),
                 // Feature cards (plain playful white/black style)
                 ExpressiveCard(
                   title: 'Pauza',
                   subtitle: 'Zastav se a nadechni',
                   icon: Icons.self_improvement,
-                  colors: <Color>[Colors.white, Colors.white],
-                  onTap: () => context.push('/pause'),
+                  colors: <Color>[AppColors.white, AppColors.white],
+                  onTap: () => context.navigateToPause(),
                   showWatermark: true,
                   plain: true,
                 ),
@@ -195,8 +299,8 @@ class _HomePageState extends State<HomePage> {
                   title: 'Nálada',
                   subtitle: 'Zaznamenej, jak se máš',
                   icon: Icons.mood,
-                  colors: <Color>[Colors.white, Colors.white],
-                  onTap: () => context.push('/mood'),
+                  colors: <Color>[AppColors.white, AppColors.white],
+                  onTap: () => context.navigateToMood(),
                   showWatermark: true,
                   plain: true,
                 ),
@@ -205,8 +309,8 @@ class _HomePageState extends State<HomePage> {
                   title: 'Tipy',
                   subtitle: 'Rychlá zklidnění',
                   icon: Icons.tips_and_updates,
-                  colors: <Color>[Colors.white, Colors.white],
-                  onTap: () => context.push('/tips'),
+                  colors: <Color>[AppColors.white, AppColors.white],
+                  onTap: () => context.navigateToTips(),
                   showWatermark: true,
                   plain: true,
                 ),
@@ -215,10 +319,10 @@ class _HomePageState extends State<HomePage> {
                   title: 'Parťák',
                   subtitle: 'Ptej se, povídej',
                   icon: Icons.chat_bubble,
-                  colors: <Color>[cs.surfaceVariant, cs.primary],
-                  onTap: () => context.push('/partner'),
+                  colors: AppColors.gradientPlayful,
+                  onTap: () => context.navigateToPartner(),
                   showWatermark: true,
-                  plain: true,
+                  plain: false,
                 ),
                 const SizedBox(height: AppSpacing.xl),
                 Text(
@@ -230,7 +334,7 @@ class _HomePageState extends State<HomePage> {
                 const SizedBox(height: AppSpacing.lg),
                 AppButton(
                   label: 'Open list skeleton demo',
-                  onPressed: () => context.push('/list'),
+                  onPressed: () => context.navigateTo(AppRoutes.list),
                 ),
                 const SizedBox(height: AppSpacing.xl),
               ],

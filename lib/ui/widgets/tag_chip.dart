@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../foundations/design_tokens.dart';
+import '../foundations/colors.dart';
 
 class TagChip extends StatelessWidget {
   const TagChip({
@@ -23,21 +25,27 @@ class TagChip extends StatelessWidget {
     return Container(
       padding: padding,
       decoration: BoxDecoration(
-        color: (background ?? cs.primary.withOpacity(0.06)),
-        borderRadius: BorderRadius.circular(999),
+        color: background ?? AppColors.primary.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(DesignTokens.radiusRound),
+        border: Border.all(
+          color: (foreground ?? AppColors.primary).withOpacity(0.15),
+          width: DesignTokens.borderThin,
+        ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
           if (icon != null) ...<Widget>{
-            Icon(icon, size: 14, color: foreground ?? cs.primary),
-            const SizedBox(width: 6),
+            Icon(icon, size: 13, color: foreground ?? cs.primary),
+            const SizedBox(width: 5),
           },
           Text(
             label,
             style: (labelStyle ?? const TextStyle()).copyWith(
-              color: foreground ?? cs.onSurface,
-              fontWeight: FontWeight.w600,
+              color: foreground ?? AppColors.primary,
+              fontWeight: FontWeight.w700,
+              fontSize: 11,
+              letterSpacing: 0.5,
             ),
           ),
         ],

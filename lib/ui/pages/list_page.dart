@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/constants/app_constants.dart';
 import '../foundations/spacing.dart';
 import '../widgets/app_button.dart';
 import '../widgets/app_scaffold.dart';
@@ -20,7 +21,7 @@ class _ListPageState extends State<ListPage> {
 
   Future<void> _refresh() async {
     // No mock data is fetched; just a quick UI refresh gesture.
-    await Future<void>.delayed(const Duration(milliseconds: 700));
+    await Future<void>.delayed(AppConstants.refreshDelay);
     if (!mounted) return;
     setState(() {});
   }

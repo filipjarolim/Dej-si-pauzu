@@ -14,7 +14,9 @@ class Shimmer extends StatefulWidget {
 class _ShimmerState extends State<Shimmer> with SingleTickerProviderStateMixin {
   late final AnimationController _controller = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 1200),
+    duration: const Duration(milliseconds: 1500), // Slower for smoother shimmer
+    lowerBound: 0.0,
+    upperBound: 1.0,
   )..repeat();
 
   @override
@@ -25,6 +27,7 @@ class _ShimmerState extends State<Shimmer> with SingleTickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
+    final ColorScheme cs = Theme.of(context).colorScheme;
     return AnimatedBuilder(
       animation: _controller,
       builder: (BuildContext context, Widget? child) {
@@ -37,14 +40,14 @@ class _ShimmerState extends State<Shimmer> with SingleTickerProviderStateMixin {
               begin: Alignment.centerLeft,
               end: Alignment.centerRight,
               colors: <Color>[
-                Colors.grey.shade300,
-                Colors.grey.shade100,
-                Colors.grey.shade300,
+                cs.surfaceVariant,
+                cs.surfaceVariant.withOpacity(0.5),
+                cs.surfaceVariant,
               ],
               stops: <double>[
-                (start - 0.2).clamp(0.0, 1.0),
+                (start - 0.25).clamp(0.0, 1.0),
                 start.clamp(0.0, 1.0),
-                (start + 0.2).clamp(0.0, 1.0),
+                (start + 0.25).clamp(0.0, 1.0),
               ],
             ).createShader(Rect.fromLTWH(0, 0, width, bounds.height));
           },
@@ -66,12 +69,13 @@ class SkeletonBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ColorScheme cs = Theme.of(context).colorScheme;
     return Shimmer(
       child: Container(
         width: width,
         height: height,
         decoration: BoxDecoration(
-          color: Colors.grey.shade300,
+          color: cs.surfaceVariant,
           borderRadius: BorderRadius.circular(borderRadius),
         ),
       ),

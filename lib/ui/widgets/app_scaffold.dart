@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../foundations/spacing.dart';
+import '../foundations/design_tokens.dart';
+import '../foundations/colors.dart';
 
 /// A thin wrapper around Scaffold that standardizes safe areas and padding.
 class AppScaffold extends StatelessWidget {
@@ -19,39 +21,41 @@ class AppScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: <Widget>[
-        // Playful soft gradient background, mostly light tones
-        const DecoratedBox(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: <Color>[
-                Color(0xFFF7F3FF), // soft lilac
-                Color(0xFFFDF6F0), // warm off-white
-                Color(0xFFF1FAF0), // soft mint
-              ],
-            ),
-          ),
-        ),
-        Scaffold(
-          backgroundColor: Colors.transparent,
-          appBar: appBar,
-          body: SafeArea(
-            child: Padding(
-              padding: padding,
+    return Scaffold(
+      backgroundColor: AppColors.white,
+      appBar: appBar,
+      body: Container(
+        color: AppColors.white,
+        child: SafeArea(
+          child: Padding(
+            padding: padding,
+            child: RepaintBoundary(
               child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 240),
+                duration: const Duration(milliseconds: 250),
                 switchInCurve: Curves.easeOutCubic,
                 switchOutCurve: Curves.easeInCubic,
+                transitionBuilder: (Widget child, Animation<double> animation) {
+                  return FadeTransition(
+                    opacity: animation,
+                    child: SlideTransition(
+                      position: Tween<Offset>(
+                        begin: const Offset(0, 0.015),
+                        end: Offset.zero,
+                      ).animate(CurvedAnimation(
+                        parent: animation,
+                        curve: Curves.easeOutCubic,
+                      )),
+                      child: child,
+                    ),
+                  );
+                },
                 child: body,
               ),
             ),
           ),
-          bottomNavigationBar: bottomBar,
         ),
-      ],
+      ),
+      bottomNavigationBar: bottomBar,
     );
   }
 }
