@@ -43,7 +43,7 @@ class TipsPage extends StatelessWidget {
 
     return AppScaffold(
       appBar: AppBar(title: const Text('Tipy na zklidnění')),
-      bottomBar: const AppBottomNav(),
+      bottomBar: null, // Navbar provided by ShellRoute
       body: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.only(top: AppSpacing.xl),

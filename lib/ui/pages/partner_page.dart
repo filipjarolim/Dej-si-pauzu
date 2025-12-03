@@ -17,7 +17,7 @@ class PartnerPage extends StatelessWidget {
     final ColorScheme cs = Theme.of(context).colorScheme;
     return AppScaffold(
       appBar: AppBar(title: const Text('Parťák pro pauzu')),
-      bottomBar: const AppBottomNav(),
+      bottomBar: null, // Navbar provided by ShellRoute
       body: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.only(top: AppSpacing.xl),

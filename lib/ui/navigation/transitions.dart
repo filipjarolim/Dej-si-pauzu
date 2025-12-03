@@ -3,10 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../foundations/motion.dart';
+import '../../core/constants/app_routes.dart';
 
 /// Shared transitions builders for route pages.
 class AppTransitions {
   AppTransitions._();
+
+  // Track previous route path for slide direction
+  static String? _previousRoutePath;
 
   static CustomTransitionPage<T> sharedAxisHorizontal<T>({
     required Widget child,
@@ -72,6 +76,62 @@ class AppTransitions {
         );
       },
     );
+  }
+
+  /// Slide transition for bottom navigation tabs
+  /// Push-style transition: old page slides out while new page slides in
+  /// Uses SharedAxisTransition for proper push effect
+  static Page<T> tabSlide<T>({
+    required Widget child,
+    required String routePath,
+  }) {
+    // Update previous route path (only if it's a tab route)
+    if (_isTabRoute(routePath)) {
+      _previousRoutePath = routePath;
+    }
+
+    return CustomTransitionPage<T>(
+      key: ValueKey<String>(routePath), // Important: unique key for each route
+      transitionDuration: const Duration(milliseconds: 400),
+      reverseTransitionDuration: const Duration(milliseconds: 400),
+      child: child,
+      transitionsBuilder: (
+        BuildContext context,
+        Animation<double> animation,
+        Animation<double> secondaryAnimation,
+        Widget child,
+      ) {
+        // SharedAxisTransition handles both pages sliding horizontally
+        // It automatically slides the old page out while the new one slides in
+        return SharedAxisTransition(
+          animation: CurvedAnimation(
+            parent: animation,
+            curve: Curves.easeInOutCubic,
+          ),
+          secondaryAnimation: secondaryAnimation,
+          transitionType: SharedAxisTransitionType.horizontal,
+          child: child,
+        );
+      },
+    );
+  }
+
+  /// Check if route is a bottom nav tab route
+  static bool _isTabRoute(String path) {
+    return path == AppRoutes.home ||
+        path == AppRoutes.pause ||
+        path == AppRoutes.mood ||
+        path == AppRoutes.tips ||
+        path == AppRoutes.partner;
+  }
+
+  /// Get tab index from route path
+  static int _getTabIndex(String path) {
+    if (path.startsWith(AppRoutes.pause)) return 1;
+    if (path.startsWith(AppRoutes.mood)) return 2;
+    if (path.startsWith(AppRoutes.tips)) return 3;
+    if (path.startsWith(AppRoutes.partner)) return 4;
+    return 0; // home
   }
 }
 

@@ -111,7 +111,7 @@ class _AppBottomNavState extends State<AppBottomNav> with SingleTickerProviderSt
             labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
             selectedIndex: selected,
             indicatorColor: AppColors.primary.withOpacity(0.1),
-            animationDuration: AppMotion.fast,
+            animationDuration: const Duration(milliseconds: 400), // Match page transition duration
             onDestinationSelected: (int idx) {
               HapticFeedback.selectionClick();
               _handleTabChange(idx, selected);
@@ -126,6 +126,7 @@ class _AppBottomNavState extends State<AppBottomNav> with SingleTickerProviderSt
                 );
                 return;
               }
+              // Use go() - the PageView in _TabShell will handle the animation
               context.go(target);
             },
             destinations: <Widget>[

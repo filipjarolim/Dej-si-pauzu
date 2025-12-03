@@ -128,7 +128,12 @@ class _HomePageState extends State<HomePage> {
                   padding: EdgeInsets.all(8.0),
                   child: Hero(
                     tag: 'app-logo',
-                    child: Icon(Icons.self_improvement, size: 24),
+                    child: Image(
+                      image: AssetImage('icon512.png'),
+                      width: 24,
+                      height: 24,
+                      fit: BoxFit.contain,
+                    ),
                   ),
                 ),
               ),
@@ -149,7 +154,7 @@ class _HomePageState extends State<HomePage> {
               const SizedBox(width: 4),
             ],
           ),
-          bottomBar: const AppBottomNav(),
+          bottomBar: null, // Navbar provided by ShellRoute
           body: CustomRefreshIndicator(
             onRefresh: _refresh,
             child: ListView(

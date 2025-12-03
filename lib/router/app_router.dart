@@ -14,6 +14,7 @@ import '../ui/pages/tips_page.dart';
 import '../ui/pages/partner_page.dart';
 import '../ui/pages/settings_page.dart';
 import '../ui/pages/profile_page.dart';
+import '../ui/widgets/app_bottom_nav.dart';
 
 final GoRouter appRouter = GoRouter(
   initialLocation: AppRoutes.splash,
@@ -32,37 +33,61 @@ final GoRouter appRouter = GoRouter(
         );
       },
     ),
-    GoRoute(
-      path: AppRoutes.home,
-      pageBuilder: (BuildContext context, GoRouterState state) {
-        return AppTransitions.sharedAxisHorizontal(
-          child: const HomePage(),
+    ShellRoute(
+      builder: (BuildContext context, GoRouterState state, Widget navigator) {
+        return Scaffold(
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+          body: navigator,
+          bottomNavigationBar: const AppBottomNav(),
         );
       },
-    ),
-    GoRoute(
-      path: AppRoutes.pause,
-      pageBuilder: (BuildContext context, GoRouterState state) {
-        return AppTransitions.fadeScale(child: const PausePage());
-      },
-    ),
-    GoRoute(
-      path: AppRoutes.mood,
-      pageBuilder: (BuildContext context, GoRouterState state) {
-        return AppTransitions.fadeScale(child: const MoodPage());
-      },
-    ),
-    GoRoute(
-      path: AppRoutes.tips,
-      pageBuilder: (BuildContext context, GoRouterState state) {
-        return AppTransitions.fadeScale(child: const TipsPage());
-      },
-    ),
-    GoRoute(
-      path: AppRoutes.partner,
-      pageBuilder: (BuildContext context, GoRouterState state) {
-        return AppTransitions.fadeScale(child: const PartnerPage());
-      },
+      routes: <RouteBase>[
+        GoRoute(
+          path: AppRoutes.home,
+          pageBuilder: (BuildContext context, GoRouterState state) {
+            return AppTransitions.tabSlide(
+              routePath: state.uri.path,
+              child: const HomePage(),
+            );
+          },
+        ),
+        GoRoute(
+          path: AppRoutes.pause,
+          pageBuilder: (BuildContext context, GoRouterState state) {
+            return AppTransitions.tabSlide(
+              routePath: state.uri.path,
+              child: const PausePage(),
+            );
+          },
+        ),
+        GoRoute(
+          path: AppRoutes.mood,
+          pageBuilder: (BuildContext context, GoRouterState state) {
+            return AppTransitions.tabSlide(
+              routePath: state.uri.path,
+              child: const MoodPage(),
+            );
+          },
+        ),
+        GoRoute(
+          path: AppRoutes.tips,
+          pageBuilder: (BuildContext context, GoRouterState state) {
+            return AppTransitions.tabSlide(
+              routePath: state.uri.path,
+              child: const TipsPage(),
+            );
+          },
+        ),
+        GoRoute(
+          path: AppRoutes.partner,
+          pageBuilder: (BuildContext context, GoRouterState state) {
+            return AppTransitions.tabSlide(
+              routePath: state.uri.path,
+              child: const PartnerPage(),
+            );
+          },
+        ),
+      ],
     ),
     GoRoute(
       path: AppRoutes.list,

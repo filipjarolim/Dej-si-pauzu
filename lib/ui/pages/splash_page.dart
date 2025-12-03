@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/constants/app_constants.dart';
+import '../../core/services/update_service.dart';
 import '../foundations/motion.dart';
 import '../foundations/colors.dart';
 
@@ -38,8 +39,15 @@ class _SplashPageState extends State<SplashPage> with SingleTickerProviderStateM
     Future.wait(<Future<void>>[
       widget.initialize(),
       Future<void>.delayed(AppConstants.splashMinDuration),
-    ]).then((_) {
+    ]).then((_) async {
       if (!mounted) return;
+      
+      // Check for updates after splash screen
+      await UpdateService().initialize();
+      await UpdateService().checkForUpdates(context, forceUpdate: true);
+      
+      if (!mounted) return;
+      
       if (widget.onReady != null) {
         widget.onReady!(context);
       } else {
@@ -99,22 +107,11 @@ class _SplashPageState extends State<SplashPage> with SingleTickerProviderStateM
                     scale: AlwaysStoppedAnimation<double>(iconScale),
                     child: Hero(
                       tag: 'app-logo',
-                      child: Container(
+                      child: Image.asset(
+                        'icon512.png',
                         width: 120,
                         height: 120,
-                        decoration: BoxDecoration(
-                          color: cs.primary.withOpacity(0.08),
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: cs.primary.withOpacity(0.12),
-                            width: 2,
-                          ),
-                        ),
-                        child: Icon(
-                          Icons.self_improvement,
-                          size: 64,
-                          color: cs.primary,
-                        ),
+                        fit: BoxFit.contain,
                       ),
                     ),
                   ),

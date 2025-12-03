@@ -5,14 +5,27 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'router/app_router.dart';
 import 'debug/perf.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'ui/foundations/colors.dart';
 import 'ui/foundations/design_tokens.dart';
+import 'core/widgets/update_checker.dart';
+import 'core/services/app_service.dart';
+import 'core/services/database_service.dart';
+import 'core/services/auth_service.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Load environment variables
+  try {
+    await dotenv.load(fileName: '.env');
+  } catch (e) {
+    debugPrint('Warning: Could not load .env file: $e');
+    debugPrint('Make sure to create a .env file based on .env.example');
+  }
 
   // Enable input resampling for smoother pointer events on high-refresh devices.
   GestureBinding.instance.resamplingEnabled = true;
@@ -38,6 +51,20 @@ void main() {
     return true;
   };
 
+  // Initialize services
+  ServiceRegistry.register<DatabaseService>(DatabaseService());
+  ServiceRegistry.register<AuthService>(AuthService());
+  
+  // Initialize all services
+  await ServiceRegistry.initializeAll();
+
+  // Initialize services
+  ServiceRegistry.register<DatabaseService>(DatabaseService());
+  ServiceRegistry.register<AuthService>(AuthService());
+  
+  // Initialize all services
+  await ServiceRegistry.initializeAll();
+
   runApp(const MyApp());
 }
 
@@ -50,10 +77,11 @@ class MyApp extends StatelessWidget {
     if (kDebugMode) {
       PerfDebugTools.enableFrameTimingsLogging();
     }
-    return MaterialApp.router(
-      title: 'Dej si pauzu',
-      debugShowCheckedModeBanner: false,
-      scrollBehavior: const AppScrollBehavior(),
+    return UpdateChecker(
+      child: MaterialApp.router(
+        title: 'Dej si pauzu',
+        debugShowCheckedModeBanner: false,
+        scrollBehavior: const AppScrollBehavior(),
       theme: ThemeData(
         useMaterial3: true,
         scaffoldBackgroundColor: AppColors.white,
@@ -270,11 +298,11 @@ class MyApp extends StatelessWidget {
         ),
         pageTransitionsTheme: const PageTransitionsTheme(
           builders: <TargetPlatform, PageTransitionsBuilder>{
-            TargetPlatform.android: ZoomPageTransitionsBuilder(),
+            TargetPlatform.android: FadeUpwardsPageTransitionsBuilder(),
             TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
             TargetPlatform.macOS: CupertinoPageTransitionsBuilder(),
-            TargetPlatform.linux: ZoomPageTransitionsBuilder(),
-            TargetPlatform.windows: ZoomPageTransitionsBuilder(),
+            TargetPlatform.linux: FadeUpwardsPageTransitionsBuilder(),
+            TargetPlatform.windows: FadeUpwardsPageTransitionsBuilder(),
           },
         ),
       ),
@@ -296,6 +324,7 @@ class MyApp extends StatelessWidget {
         return wrappedChild;
       },
       routerConfig: appRouter,
+    ),
     );
   }
 }
