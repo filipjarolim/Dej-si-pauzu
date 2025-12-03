@@ -20,8 +20,10 @@
 
 Example:
 ```
-MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/database_name?retryWrites=true&w=majority
+MONGODB_URI=mongodb+srv://<username>:<password>@<cluster>.mongodb.net/<database_name>?retryWrites=true&w=majority
 ```
+
+**Note:** Replace `<username>`, `<password>`, `<cluster>`, and `<database_name>` with your actual MongoDB Atlas credentials.
 
 ### Google Sign In Setup
 
