@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../core/constants/app_constants.dart';
+import '../../core/constants/app_routes.dart';
 import '../foundations/spacing.dart';
 import '../widgets/app_button.dart';
 import '../widgets/app_scaffold.dart';
@@ -29,7 +31,19 @@ class _ListPageState extends State<ListPage> {
   @override
   Widget build(BuildContext context) {
     return AppScaffold(
-      appBar: AppBar(title: const Text('List')),
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go(AppRoutes.home);
+            }
+          },
+        ),
+        title: const Text('List'),
+      ),
       bottomBar: const AppBottomNav(),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,

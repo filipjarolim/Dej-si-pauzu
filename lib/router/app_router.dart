@@ -42,50 +42,50 @@ final GoRouter appRouter = GoRouter(
         );
       },
       routes: <RouteBase>[
-        GoRoute(
-          path: AppRoutes.home,
-          pageBuilder: (BuildContext context, GoRouterState state) {
+    GoRoute(
+      path: AppRoutes.home,
+      pageBuilder: (BuildContext context, GoRouterState state) {
             return AppTransitions.tabSlide(
               routePath: state.uri.path,
-              child: const HomePage(),
-            );
-          },
-        ),
-        GoRoute(
-          path: AppRoutes.pause,
-          pageBuilder: (BuildContext context, GoRouterState state) {
+          child: const HomePage(),
+        );
+      },
+    ),
+    GoRoute(
+      path: AppRoutes.pause,
+      pageBuilder: (BuildContext context, GoRouterState state) {
             return AppTransitions.tabSlide(
               routePath: state.uri.path,
               child: const PausePage(),
             );
-          },
-        ),
-        GoRoute(
-          path: AppRoutes.mood,
-          pageBuilder: (BuildContext context, GoRouterState state) {
+      },
+    ),
+    GoRoute(
+      path: AppRoutes.mood,
+      pageBuilder: (BuildContext context, GoRouterState state) {
             return AppTransitions.tabSlide(
               routePath: state.uri.path,
               child: const MoodPage(),
             );
-          },
-        ),
-        GoRoute(
-          path: AppRoutes.tips,
-          pageBuilder: (BuildContext context, GoRouterState state) {
+      },
+    ),
+    GoRoute(
+      path: AppRoutes.tips,
+      pageBuilder: (BuildContext context, GoRouterState state) {
             return AppTransitions.tabSlide(
               routePath: state.uri.path,
               child: const TipsPage(),
             );
-          },
-        ),
-        GoRoute(
-          path: AppRoutes.partner,
-          pageBuilder: (BuildContext context, GoRouterState state) {
+      },
+    ),
+    GoRoute(
+      path: AppRoutes.partner,
+      pageBuilder: (BuildContext context, GoRouterState state) {
             return AppTransitions.tabSlide(
               routePath: state.uri.path,
               child: const PartnerPage(),
             );
-          },
+      },
         ),
       ],
     ),

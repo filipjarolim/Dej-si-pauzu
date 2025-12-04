@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../core/constants/app_constants.dart';
 import '../../core/extensions/build_context_extensions.dart';
 import '../../core/constants/app_routes.dart';
+import '../../core/services/database_service.dart';
 import '../foundations/spacing.dart';
 import '../widgets/app_button.dart';
 import '../widgets/app_loading.dart';
@@ -25,6 +27,7 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   bool _loading = false;
+  final DatabaseService _db = DatabaseService();
 
   Future<void> _simulateWork() async {
     setState(() => _loading = true);
@@ -37,6 +40,156 @@ class _HomePageState extends State<HomePage> {
     await Future<void>.delayed(AppConstants.refreshDelay);
     if (!mounted) return;
     setState(() {});
+  }
+
+  Future<void> _insertTestDocument() async {
+    if (!_db.isConnected) {
+      await _db.initialize();
+    }
+
+    if (!_db.isConnected) {
+      _showSnackBar('Database not connected', AppColors.error);
+      return;
+    }
+
+    try {
+      final Map<String, dynamic> testDoc = <String, dynamic>{
+        'name': 'Test Document',
+        'type': 'dev_test',
+        'timestamp': DateTime.now().toIso8601String(),
+        'data': <String, dynamic>{
+          'value': 42,
+          'message': 'Hello from Flutter!',
+        },
+      };
+
+      await _db.insertOne('test_collection', testDoc);
+      _showSnackBar('Document inserted successfully!', AppColors.success);
+      HapticFeedback.mediumImpact();
+    } catch (e) {
+      _showSnackBar('Error: $e', AppColors.error);
+    }
+  }
+
+  Future<void> _findTestDocuments() async {
+    if (!_db.isConnected) {
+      await _db.initialize();
+    }
+
+    if (!_db.isConnected) {
+      _showSnackBar('Database not connected', AppColors.error);
+      return;
+    }
+
+    try {
+      final List<Map<String, dynamic>> docs = await _db.find(
+        'test_collection',
+        filter: <String, dynamic>{'type': 'dev_test'},
+        limit: 10,
+      );
+      _showSnackBar('Found ${docs.length} documents', AppColors.success);
+      HapticFeedback.mediumImpact();
+    } catch (e) {
+      _showSnackBar('Error: $e', AppColors.error);
+    }
+  }
+
+  Future<void> _updateTestDocument() async {
+    if (!_db.isConnected) {
+      await _db.initialize();
+    }
+
+    if (!_db.isConnected) {
+      _showSnackBar('Database not connected', AppColors.error);
+      return;
+    }
+
+    try {
+      final Map<String, dynamic>? doc = await _db.findOne(
+        'test_collection',
+        filter: <String, dynamic>{'type': 'dev_test'},
+      );
+
+      if (doc == null) {
+        _showSnackBar('No document found to update', AppColors.warning);
+        return;
+      }
+
+      await _db.updateOne(
+        'test_collection',
+        <String, dynamic>{'_id': doc['_id']},
+        <String, dynamic>{
+          'updatedAt': DateTime.now().toIso8601String(),
+          'updated': true,
+        },
+      );
+      _showSnackBar('Document updated successfully!', AppColors.success);
+      HapticFeedback.mediumImpact();
+    } catch (e) {
+      _showSnackBar('Error: $e', AppColors.error);
+    }
+  }
+
+  Future<void> _deleteTestDocument() async {
+    if (!_db.isConnected) {
+      await _db.initialize();
+    }
+
+    if (!_db.isConnected) {
+      _showSnackBar('Database not connected', AppColors.error);
+      return;
+    }
+
+    try {
+      final Map<String, dynamic>? doc = await _db.findOne(
+        'test_collection',
+        filter: <String, dynamic>{'type': 'dev_test'},
+      );
+
+      if (doc == null) {
+        _showSnackBar('No document found to delete', AppColors.warning);
+        return;
+      }
+
+      await _db.deleteOne(
+        'test_collection',
+        <String, dynamic>{'_id': doc['_id']},
+      );
+      _showSnackBar('Document deleted successfully!', AppColors.success);
+      HapticFeedback.mediumImpact();
+    } catch (e) {
+      _showSnackBar('Error: $e', AppColors.error);
+    }
+  }
+
+  Future<void> _countTestDocuments() async {
+    if (!_db.isConnected) {
+      await _db.initialize();
+    }
+
+    if (!_db.isConnected) {
+      _showSnackBar('Database not connected', AppColors.error);
+      return;
+    }
+
+    try {
+      final int count = await _db.count('test_collection');
+      _showSnackBar('Total documents: $count', AppColors.success);
+      HapticFeedback.lightImpact();
+    } catch (e) {
+      _showSnackBar('Error: $e', AppColors.error);
+    }
+  }
+
+  void _showSnackBar(String message, Color backgroundColor) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: backgroundColor,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 
   Widget _heroCard(BuildContext context) {
@@ -139,20 +292,6 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
             title: const Text('Domů'),
-            actions: <Widget>[
-              Material(
-                color: Colors.transparent,
-                child: InkWell(
-                borderRadius: BorderRadius.circular(DesignTokens.radiusSm),
-                onTap: () => context.navigateToSettings(),
-                  child: const Padding(
-                    padding: EdgeInsets.all(8.0),
-                    child: Icon(Icons.more_horiz_rounded, size: 24),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 4),
-            ],
           ),
           bottomBar: null, // Navbar provided by ShellRoute
           body: CustomRefreshIndicator(
@@ -282,57 +421,60 @@ class _HomePageState extends State<HomePage> {
                 ),
                 const SizedBox(height: AppSpacing.xl),
                 Text(
-                  'Doporučení',
-                  style: text.titleMedium?.copyWith(
+                  'Database / Dev',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w800,
-                    letterSpacing: -0.3,
                   ),
                 ),
                 const SizedBox(height: AppSpacing.md),
-                // Feature cards (plain playful white/black style)
-                ExpressiveCard(
-                  title: 'Pauza',
-                  subtitle: 'Zastav se a nadechni',
-                  icon: Icons.self_improvement,
-                  colors: <Color>[AppColors.white, AppColors.white],
-                  onTap: () => context.navigateToPause(),
-                  showWatermark: true,
-                  plain: true,
+                Wrap(
+                  spacing: AppSpacing.sm,
+                  runSpacing: AppSpacing.sm,
+                  children: <Widget>[
+                    _DatabaseButton(
+                      icon: Icons.table_chart,
+                      label: 'View Database',
+                      onPressed: () => context.navigateTo(AppRoutes.database),
+                      color: AppColors.primary,
+                ),
+                    _DatabaseButton(
+                      icon: Icons.add_circle_outline,
+                      label: 'Insert Test',
+                      onPressed: _insertTestDocument,
+                      color: AppColors.success,
+                    ),
+                    _DatabaseButton(
+                      icon: Icons.search,
+                      label: 'Find Test',
+                      onPressed: _findTestDocuments,
+                      color: AppColors.skyBlue,
+                ),
+                    _DatabaseButton(
+                      icon: Icons.edit_outlined,
+                      label: 'Update Test',
+                      onPressed: _updateTestDocument,
+                      color: AppColors.warning,
+                    ),
+                    _DatabaseButton(
+                      icon: Icons.delete_outline,
+                      label: 'Delete Test',
+                      onPressed: _deleteTestDocument,
+                      color: AppColors.error,
+                    ),
+                    _DatabaseButton(
+                      icon: Icons.refresh,
+                      label: 'Count Test',
+                      onPressed: _countTestDocuments,
+                      color: AppColors.mintGreen,
+                    ),
+                  ],
                 ),
                 const SizedBox(height: AppSpacing.lg),
-                ExpressiveCard(
-                  title: 'Nálada',
-                  subtitle: 'Zaznamenej, jak se máš',
-                  icon: Icons.mood,
-                  colors: <Color>[AppColors.white, AppColors.white],
-                  onTap: () => context.navigateToMood(),
-                  showWatermark: true,
-                  plain: true,
-                ),
-                const SizedBox(height: AppSpacing.lg),
-                ExpressiveCard(
-                  title: 'Tipy',
-                  subtitle: 'Rychlá zklidnění',
-                  icon: Icons.tips_and_updates,
-                  colors: <Color>[AppColors.white, AppColors.white],
-                  onTap: () => context.navigateToTips(),
-                  showWatermark: true,
-                  plain: true,
-                ),
-                const SizedBox(height: AppSpacing.lg),
-                ExpressiveCard(
-                  title: 'Parťák',
-                  subtitle: 'Ptej se, povídej',
-                  icon: Icons.chat_bubble,
-                  colors: AppColors.gradientPlayful,
-                  onTap: () => context.navigateToPartner(),
-                  showWatermark: true,
-                  plain: false,
-                ),
-                const SizedBox(height: AppSpacing.xl),
                 Text(
                   'Utility / Dev',
-                  style: Theme.of(context).textTheme.titleMedium,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
                 const SizedBox(height: AppSpacing.lg),
                 AppButton(label: 'Run task', onPressed: _simulateWork),
@@ -348,6 +490,64 @@ class _HomePageState extends State<HomePage> {
         ),
         LoadingOverlay(show: _loading, message: 'Working...')
       ],
+    );
+  }
+}
+
+class _DatabaseButton extends StatelessWidget {
+  const _DatabaseButton({
+    required this.icon,
+    required this.label,
+    required this.onPressed,
+    required this.color,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onPressed;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final TextTheme text = Theme.of(context).textTheme;
+    return SizedBox(
+      width: 120,
+      child: Material(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(DesignTokens.radiusMd),
+        child: InkWell(
+          onTap: onPressed,
+          borderRadius: BorderRadius.circular(DesignTokens.radiusMd),
+          child: Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.md,
+              vertical: AppSpacing.sm,
+            ),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(DesignTokens.radiusMd),
+              border: Border.all(
+                color: color.withOpacity(0.3),
+                width: 1,
+              ),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                Icon(icon, color: color, size: 24),
+                const SizedBox(height: AppSpacing.xs),
+                Text(
+                  label,
+                  style: text.bodySmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: color,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

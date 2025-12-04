@@ -32,7 +32,7 @@ class _RefreshRouletteState extends State<RefreshRoulette>
       upperBound: 1.0,
     );
     // Always repeat for smooth dot pulse animation
-    _controller.repeat();
+      _controller.repeat();
   }
 
   @override

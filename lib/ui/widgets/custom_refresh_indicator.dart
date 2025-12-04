@@ -93,7 +93,7 @@ class _CustomRefreshIndicatorState extends State<CustomRefreshIndicator> {
                 _pullProgress = progress;
               });
             }
-          }
+            }
         } else if (notification is ScrollEndNotification && !_isRefreshing) {
           // User released - check if we should trigger refresh
           if (_overscroll >= AppConstants.refreshTriggerDistance && !_hasTriggeredRefresh) {
@@ -129,15 +129,15 @@ class _CustomRefreshIndicatorState extends State<CustomRefreshIndicator> {
               left: 0,
               right: 0,
               child: IgnorePointer(
-                child: RepaintBoundary(
-                  child: AnimatedOpacity(
+              child: RepaintBoundary(
+                child: AnimatedOpacity(
                     opacity: (_pullProgress > 0.0 || _isRefreshing) ? 1.0 : 0.0,
                     duration: const Duration(milliseconds: 100),
                     child: RefreshRoulette(
                       refreshOffset: _isRefreshing ? AppConstants.refreshTriggerDistance : _overscroll,
                       isRefreshing: _isRefreshing,
                     ),
-                  ),
+                    ),
                 ),
               ),
             ),

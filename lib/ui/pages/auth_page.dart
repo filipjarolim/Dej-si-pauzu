@@ -50,12 +50,24 @@ class _AuthPageState extends State<AuthPage> {
     final ColorScheme cs = Theme.of(context).colorScheme;
 
     return AppScaffold(
-      appBar: AppBar(title: const Text('Přihlášení')),
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go(AppRoutes.home);
+            }
+          },
+        ),
+        title: const Text('Přihlášení'),
+      ),
       body: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
             const SizedBox(height: AppSpacing.xxl),
             // Welcome text
@@ -123,7 +135,7 @@ class _AuthPageState extends State<AuthPage> {
                         ),
                       ),
                     ),
-                  ],
+        ],
                 ),
               ),
             ],

@@ -31,18 +31,70 @@ class DatabaseService extends AppService {
         return;
       }
 
-      // Extract database name from URI if not provided separately
-      final String connectionUri = uri.contains('/') && uri.split('/').length > 3
-          ? uri
-          : '$uri/$dbName';
+      // Ensure database name is in the URI path
+      // Format should be: mongodb+srv://user:pass@host/dbname?options
+      String connectionUri = uri;
+      
+      // Find the position after @ (host starts here)
+      final int atIndex = uri.indexOf('@');
+      if (atIndex != -1) {
+        final String afterAt = uri.substring(atIndex + 1);
+        final int slashIndex = afterAt.indexOf('/');
+        final int questionIndex = afterAt.indexOf('?');
+        
+        // Check if database name exists between / and ?
+        bool hasDbName = false;
+        if (slashIndex != -1) {
+          if (questionIndex == -1) {
+            // Has / but no ?, check if there's text after /
+            hasDbName = afterAt.substring(slashIndex + 1).isNotEmpty;
+          } else {
+            // Has both / and ?, check if there's text between them
+            hasDbName = slashIndex + 1 < questionIndex;
+          }
+        }
+        
+        if (!hasDbName) {
+          // Insert database name
+          if (questionIndex != -1) {
+            // Insert before ?
+            connectionUri = '${uri.substring(0, atIndex + 1 + slashIndex + 1)}$dbName${afterAt.substring(questionIndex)}';
+          } else if (slashIndex != -1) {
+            // Has / but no database name, append dbname
+            connectionUri = '$uri$dbName';
+          } else {
+            // No / at all, add /dbname
+            connectionUri = '$uri/$dbName';
+          }
+        }
+      } else {
+        // No @ found, try simple append
+        if (!uri.contains('/$dbName') && !uri.endsWith('/')) {
+          connectionUri = '$uri/$dbName';
+        }
+      }
 
-      _database = Db(connectionUri);
-      await _database!.open();
-      _isConnected = true;
+      // Mask password in debug output
+      final String maskedUri = connectionUri.replaceAll(RegExp(r':([^:@]+)@'), ':****@');
+      debugPrint('Connecting to MongoDB: $maskedUri');
+      
+      try {
+        _database = await Db.create(connectionUri);
+        await _database!.open();
+        _isConnected = true;
 
-      // Test connection by getting collection names
-      await _database!.getCollectionNames();
-      debugPrint('MongoDB connected successfully');
+        // Test connection by getting collection names
+        await _database!.getCollectionNames();
+        debugPrint('MongoDB connected successfully');
+      } catch (e) {
+        // If mongodb+srv fails, try to provide helpful error message
+        if (connectionUri.contains('mongodb+srv://')) {
+          debugPrint('MongoDB connection error with mongodb+srv:// scheme: $e');
+          debugPrint('Make sure your MongoDB Atlas cluster allows connections from your IP address');
+          debugPrint('Also verify that the username and password are correct');
+        }
+        rethrow;
+      }
     } catch (e) {
       _isConnected = false;
       debugPrint('MongoDB connection error: $e');
