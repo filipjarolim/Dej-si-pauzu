@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="start_pause"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/shortcut_start_pause_label"
+        android:shortcutLongLabel="@string/shortcut_start_pause_long_label">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.vofidevs.dejsipauzu"
+            android:targetClass="com.vofidevs.dejsipauzu.MainActivity"
+            android:data="dejsipauzu://pause" />
+        <categories android:name="android.shortcut.conversation" />
+    </shortcut>
+    <shortcut
+        android:shortcutId="view_stats"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/shortcut_view_stats_label"
+        android:shortcutLongLabel="@string/shortcut_view_stats_long_label">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.vofidevs.dejsipauzu"
+            android:targetClass="com.vofidevs.dejsipauzu.MainActivity"
+            android:data="dejsipauzu://stats" />
+        <categories android:name="android.shortcut.conversation" />
+    </shortcut>
+</shortcuts>
+

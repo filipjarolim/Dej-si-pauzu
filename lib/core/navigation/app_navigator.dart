@@ -35,6 +35,7 @@ class AppNavigator {
   static void toPartner(BuildContext context) => go(context, AppRoutes.partner);
   static void toSettings(BuildContext context) => go(context, AppRoutes.settings);
   static void toProfile(BuildContext context) => go(context, AppRoutes.profile);
+  static void toStats(BuildContext context) => go(context, AppRoutes.stats);
   static void toList(BuildContext context) => go(context, AppRoutes.list);
 }
 

@@ -17,6 +17,7 @@ class AppRoutes {
   static const String list = '/list';
   static const String settings = '/settings';
   static const String profile = '/profile';
+  static const String stats = '/stats';
   
   // Dev routes
   static const String database = '/database';
@@ -43,6 +44,8 @@ class AppRoutes {
         return 'Settings';
       case profile:
         return 'Profile';
+      case stats:
+        return 'Stats';
       case database:
         return 'Database';
       case auth:

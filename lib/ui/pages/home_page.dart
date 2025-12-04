@@ -9,12 +9,10 @@ import '../foundations/spacing.dart';
 import '../widgets/app_button.dart';
 import '../widgets/app_loading.dart';
 import '../widgets/app_scaffold.dart';
-import '../widgets/app_bottom_nav.dart';
-import '../widgets/expressive_card.dart';
 import '../widgets/progress_ring.dart';
 import '../widgets/plan_item.dart';
-import '../widgets/tag_chip.dart';
 import '../widgets/custom_refresh_indicator.dart';
+import '../widgets/quick_actions_widget.dart';
 import '../foundations/design_tokens.dart';
 import '../foundations/colors.dart';
 
@@ -368,6 +366,9 @@ class _HomePageState extends State<HomePage> {
                 ),
                 const SizedBox(height: AppSpacing.lg),
                 _heroCard(context),
+                const SizedBox(height: AppSpacing.xl),
+                // Quick Actions Widget
+                const QuickActionsWidget(),
                 const SizedBox(height: AppSpacing.xl),
                 // Today's plan
                 Row(

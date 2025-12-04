@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../navigation/app_navigator.dart';
-import '../constants/app_routes.dart';
 import '../../ui/foundations/colors.dart';
 import '../../ui/foundations/design_tokens.dart';
 
@@ -85,5 +84,6 @@ extension BuildContextExtensions on BuildContext {
   void navigateToPartner() => AppNavigator.toPartner(this);
   void navigateToSettings() => AppNavigator.toSettings(this);
   void navigateToProfile() => AppNavigator.toProfile(this);
+  void navigateToStats() => AppNavigator.toStats(this);
 }
 

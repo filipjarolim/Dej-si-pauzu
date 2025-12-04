@@ -3,11 +3,13 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../core/services/statistics_service.dart';
 import '../foundations/spacing.dart';
 import '../foundations/design_tokens.dart';
 import '../foundations/colors.dart';
 import '../widgets/app_scaffold.dart';
 import '../widgets/app_bottom_nav.dart';
+import '../widgets/frosted_app_bar.dart';
 
 enum BreathingType {
   deep('Hluboké dýchání', '4 sekundy nádech, 4 sekundy výdech', 4, 4, 0),
@@ -38,6 +40,7 @@ class _PausePageState extends State<PausePage> with TickerProviderStateMixin {
   int _cyclesCompleted = 0;
   int _totalCycles = 5;
   bool _showHints = true;
+  DateTime? _sessionStartTime;
 
   late AnimationController _breathController;
   late AnimationController _pulseController;
@@ -45,6 +48,8 @@ class _PausePageState extends State<PausePage> with TickerProviderStateMixin {
   late AnimationController _fadeController;
   late AnimationController _scaleController;
   Timer? _breathTimer;
+  
+  final StatisticsService _statsService = StatisticsService();
 
   @override
   void initState() {
@@ -90,6 +95,7 @@ class _PausePageState extends State<PausePage> with TickerProviderStateMixin {
       _currentPhase = 0;
       _progress = 0.0;
       _cyclesCompleted = 0;
+      _sessionStartTime = DateTime.now();
     });
     HapticFeedback.mediumImpact();
     _fadeController.forward();
@@ -185,9 +191,18 @@ class _PausePageState extends State<PausePage> with TickerProviderStateMixin {
     });
   }
 
-  void _completeSession() {
+  void _completeSession() async {
     _stopSession();
     HapticFeedback.heavyImpact();
+    
+    // Calculate session duration and record statistics
+    if (_sessionStartTime != null) {
+      final Duration sessionDuration = DateTime.now().difference(_sessionStartTime!);
+      final int minutes = sessionDuration.inMinutes;
+      // Record at least 1 minute if session was less than a minute
+      await _statsService.recordBreathingSession(minutes > 0 ? minutes : 1);
+    }
+    
     _showCompletionDialog();
   }
 
@@ -303,13 +318,10 @@ class _PausePageState extends State<PausePage> with TickerProviderStateMixin {
 
     return Scaffold(
       backgroundColor: AppColors.skyBlue.withOpacity(0.2),
-      extendBodyBehindAppBar: false,
-      appBar: AppBar(
+      extendBodyBehindAppBar: true,
+      appBar: FrostedAppBar(
         title: const Text('Pauza'),
-        elevation: 0,
-        backgroundColor: AppColors.skyBlue.withOpacity(0.4),
-        surfaceTintColor: Colors.transparent,
-        foregroundColor: AppColors.primary,
+        backgroundColor: AppColors.skyBlue,
       ),
       body: Container(
         width: double.infinity,

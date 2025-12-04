@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Dej si pauzu</string>
+    <string name="shortcut_start_pause_label">Pauza</string>
+    <string name="shortcut_start_pause_long_label">Začít dýchací cvičení</string>
+    <string name="shortcut_view_stats_label">Statistiky</string>
+    <string name="shortcut_view_stats_long_label">Zobrazit statistiky</string>
+</resources>
+

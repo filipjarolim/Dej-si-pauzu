@@ -3,8 +3,6 @@ import 'dart:ui' as ui;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/scheduler.dart';
-import 'package:go_router/go_router.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'router/app_router.dart';
 import 'debug/perf.dart';
@@ -15,6 +13,7 @@ import 'core/widgets/update_checker.dart';
 import 'core/services/app_service.dart';
 import 'core/services/database_service.dart';
 import 'core/services/auth_service.dart';
+import 'core/services/statistics_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -54,13 +53,7 @@ Future<void> main() async {
   // Initialize services
   ServiceRegistry.register<DatabaseService>(DatabaseService());
   ServiceRegistry.register<AuthService>(AuthService());
-  
-  // Initialize all services
-  await ServiceRegistry.initializeAll();
-
-  // Initialize services
-  ServiceRegistry.register<DatabaseService>(DatabaseService());
-  ServiceRegistry.register<AuthService>(AuthService());
+  ServiceRegistry.register<StatisticsService>(StatisticsService());
   
   // Initialize all services
   await ServiceRegistry.initializeAll();
@@ -78,6 +71,8 @@ class MyApp extends StatelessWidget {
       PerfDebugTools.enableFrameTimingsLogging();
     }
     return UpdateChecker(
+      checkOnStartup: true,
+      forceUpdate: false, // Set to true to force updates
       child: MaterialApp.router(
         title: 'Dej si pauzu',
         debugShowCheckedModeBanner: false,

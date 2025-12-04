@@ -9,6 +9,7 @@ import '../foundations/colors.dart';
 import '../foundations/motion.dart';
 import '../widgets/app_scaffold.dart';
 import '../widgets/app_button.dart';
+import '../widgets/frosted_app_bar.dart';
 
 class PartnerPage extends StatefulWidget {
   const PartnerPage({super.key});
@@ -133,77 +134,84 @@ class _PartnerPageState extends State<PartnerPage> with TickerProviderStateMixin
     final Size screenSize = MediaQuery.of(context).size;
     final double cardWidth = screenSize.width - (AppSpacing.lg * 2);
 
-    return AppScaffold(
-      appBar: AppBar(title: const Text('AI Parťák')),
-      body: FadeTransition(
-        opacity: _stackController,
-        child: SingleChildScrollView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.only(top: AppSpacing.xl),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: <Widget>[
-              // Header
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Text(
+    return Scaffold(
+      backgroundColor: AppColors.white,
+      extendBodyBehindAppBar: true,
+      appBar: FrostedAppBar(
+        title: const Text('AI Parťák'),
+        backgroundColor: AppColors.white,
+      ),
+      body: SafeArea(
+        top: false,
+        child: FadeTransition(
+          opacity: _stackController,
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: EdgeInsets.only(
+              top: MediaQuery.of(context).padding.top + kToolbarHeight + AppSpacing.xl,
+              left: AppSpacing.lg,
+              right: AppSpacing.lg,
+              bottom: AppSpacing.xl,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: <Widget>[
+                // Header
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
                       'Vyber si svého parťáka',
                       style: text.headlineLarge?.copyWith(
                         fontWeight: FontWeight.w900,
                         letterSpacing: -1,
                         fontSize: 32,
+                      ),
                     ),
-                  ),
                     const SizedBox(height: AppSpacing.sm),
-                  Text(
+                    Text(
                       'Klikni na kartu a objev svého ideálního společníka',
-                    style: text.bodyLarge?.copyWith(
-                      color: cs.onSurfaceVariant,
-                      height: 1.6,
+                      style: text.bodyLarge?.copyWith(
+                        color: cs.onSurfaceVariant,
+                        height: 1.6,
                       ),
                     ),
                   ],
+                ),
+                const SizedBox(height: AppSpacing.xxl + 8),
+                // Stacked cards - fixed height container
+                SizedBox(
+                  height: _expandedIndex != null ? 600 : 500,
+                  child: Stack(
+                    alignment: Alignment.topCenter,
+                    clipBehavior: Clip.none,
+                    children: List<Widget>.generate(
+                      _personalities.length,
+                      (int index) {
+                        return _buildStackedCard(
+                          index,
+                          text,
+                          cs,
+                          cardWidth,
+                          screenSize.width,
+                        );
+                      },
                     ),
                   ),
-                  const SizedBox(height: AppSpacing.xxl + 8),
-              // Stacked cards - fixed height container
-              SizedBox(
-                height: _expandedIndex != null ? 600 : 500,
-                child: Stack(
-                  alignment: Alignment.topCenter,
-                  clipBehavior: Clip.none,
-                  children: List<Widget>.generate(
-                    _personalities.length,
-                    (int index) {
-                      return _buildStackedCard(
-                        index,
-                        text,
-                        cs,
-                        cardWidth,
-                        screenSize.width,
-                      );
-                    },
-                  ),
                 ),
-              ),
-              // Swipe hint
-              if (_expandedIndex == null) ...[
-                const SizedBox(height: AppSpacing.lg),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-                  child: Row(
+                // Swipe hint
+                if (_expandedIndex == null) ...[
+                  const SizedBox(height: AppSpacing.lg),
+                  Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: <Widget>[
                       Icon(
                         Icons.swipe_up,
                         size: 16,
                         color: cs.onSurfaceVariant.withOpacity(0.5),
-                  ),
+                      ),
                       const SizedBox(width: AppSpacing.xs),
-                  Text(
+                      Text(
                         'Swipe nahoru nebo klikni na kartu',
                         style: text.bodySmall?.copyWith(
                           color: cs.onSurfaceVariant.withOpacity(0.5),
@@ -211,14 +219,11 @@ class _PartnerPageState extends State<PartnerPage> with TickerProviderStateMixin
                         ),
                       ),
                     ],
-                    ),
                   ),
-              ] else ...[
-                // Collapse hint when expanded
+                ] else ...[
+                  // Collapse hint when expanded
                   const SizedBox(height: AppSpacing.md),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-                  child: Row(
+                  Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: <Widget>[
                       Icon(
@@ -236,21 +241,18 @@ class _PartnerPageState extends State<PartnerPage> with TickerProviderStateMixin
                       ),
                     ],
                   ),
-                ),
-              ],
-              const SizedBox(height: AppSpacing.xxl),
-              // Start chat button
-              if (_expandedIndex != null) ...[
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-                  child: AppButton(
+                ],
+                const SizedBox(height: AppSpacing.xxl),
+                // Start chat button
+                if (_expandedIndex != null) ...[
+                  AppButton(
                     label: 'Začít konverzaci s ${_personalities[_expandedIndex!]['name']}',
                     onPressed: _startChat,
                   ),
-                ),
-                const SizedBox(height: AppSpacing.xl),
+                  const SizedBox(height: AppSpacing.xl),
+                ],
               ],
-            ],
+            ),
           ),
         ),
       ),

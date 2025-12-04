@@ -95,8 +95,8 @@ class AuthService extends AppService {
         throw Exception('Google sign in was cancelled');
       }
 
-      // Get authentication details
-      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      // Get authentication details (stored for potential future use)
+      await googleUser.authentication;
 
       // Create user object
       final User user = User(
@@ -135,6 +135,38 @@ class AuthService extends AppService {
       _currentUser = null;
     } catch (e) {
       debugPrint('Sign out error: $e');
+      rethrow;
+    }
+  }
+
+  /// Update user profile
+  Future<User> updateProfile({
+    String? name,
+  }) async {
+    if (_currentUser == null) {
+      throw Exception('No user is currently signed in');
+    }
+
+    try {
+      // Create updated user object
+      final User updatedUser = User(
+        id: _currentUser!.id,
+        email: _currentUser!.email,
+        name: name ?? _currentUser!.name,
+        photoUrl: _currentUser!.photoUrl,
+        provider: _currentUser!.provider,
+      );
+
+      // Update in database
+      await _saveUserToDatabase(updatedUser);
+
+      // Update local session
+      await _saveSession(updatedUser);
+
+      _currentUser = updatedUser;
+      return updatedUser;
+    } catch (e) {
+      debugPrint('Update profile error: $e');
       rethrow;
     }
   }

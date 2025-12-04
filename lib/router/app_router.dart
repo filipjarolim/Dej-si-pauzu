@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 
 import '../core/constants/app_routes.dart';
@@ -14,10 +15,26 @@ import '../ui/pages/tips_page.dart';
 import '../ui/pages/partner_page.dart';
 import '../ui/pages/settings_page.dart';
 import '../ui/pages/profile_page.dart';
+import '../ui/pages/stats_page.dart';
 import '../ui/widgets/app_bottom_nav.dart';
+import '../ui/foundations/design_tokens.dart';
+import '../ui/foundations/colors.dart';
 
 final GoRouter appRouter = GoRouter(
   initialLocation: AppRoutes.splash,
+  redirect: (BuildContext context, GoRouterState state) {
+    // Handle deep links from Android shortcuts
+    final Uri? uri = state.uri;
+    if (uri != null && uri.scheme == 'dejsipauzu') {
+      final String path = uri.path;
+      if (path == '/pause') {
+        return AppRoutes.pause;
+      } else if (path == '/stats') {
+        return AppRoutes.stats;
+      }
+    }
+    return null; // No redirect needed
+  },
   routes: <RouteBase>[
     GoRoute(
       path: AppRoutes.splash,
@@ -35,10 +52,58 @@ final GoRouter appRouter = GoRouter(
     ),
     ShellRoute(
       builder: (BuildContext context, GoRouterState state, Widget navigator) {
-        return Scaffold(
-          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-          body: navigator,
-          bottomNavigationBar: const AppBottomNav(),
+        return PopScope(
+          canPop: false,
+          onPopInvoked: (bool didPop) async {
+            if (didPop) return;
+            
+            // Check if we can pop (if not, we're on a main tab page)
+            if (!context.canPop()) {
+              // Show confirmation dialog before exiting
+              final bool? shouldExit = await showDialog<bool>(
+                context: context,
+                builder: (BuildContext dialogContext) => AlertDialog(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(DesignTokens.radiusXl),
+                  ),
+                  title: const Text('Opustit aplikaci?'),
+                  content: const Text('Opravdu chceš aplikaci opustit?'),
+                  actions: <Widget>[
+                    TextButton(
+                      onPressed: () {
+                        HapticFeedback.selectionClick();
+                        Navigator.of(dialogContext).pop(false);
+                      },
+                      child: const Text('Zrušit'),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        HapticFeedback.mediumImpact();
+                        Navigator.of(dialogContext).pop(true);
+                      },
+                      style: TextButton.styleFrom(
+                        foregroundColor: AppColors.error,
+                      ),
+                      child: const Text('Opustit'),
+                    ),
+                  ],
+                ),
+              );
+              
+              if (shouldExit == true && context.mounted) {
+                // Exit the app
+                SystemNavigator.pop();
+              }
+            } else {
+              // Normal pop navigation
+              context.pop();
+            }
+          },
+          child: Scaffold(
+            backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+            body: navigator,
+            bottomNavigationBar: const AppBottomNav(),
+          ),
         );
       },
       routes: <RouteBase>[
@@ -126,6 +191,14 @@ final GoRouter appRouter = GoRouter(
       pageBuilder: (BuildContext context, GoRouterState state) {
         return AppTransitions.fadeScale(
           child: const ProfilePage(),
+        );
+      },
+    ),
+    GoRoute(
+      path: AppRoutes.stats,
+      pageBuilder: (BuildContext context, GoRouterState state) {
+        return AppTransitions.fadeScale(
+          child: const StatsPage(),
         );
       },
     ),

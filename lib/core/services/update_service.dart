@@ -3,7 +3,6 @@ import 'package:upgrader/upgrader.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import '../../ui/foundations/colors.dart';
 import '../../ui/foundations/design_tokens.dart';
-import '../constants/app_constants.dart';
 import 'app_service.dart';
 
 /// Custom Czech messages for upgrader
@@ -11,7 +10,7 @@ class CzechUpgraderMessages extends UpgraderMessages {
   CzechUpgraderMessages() : super(code: 'cs');
 
   @override
-  String get body => 'Nová verze aplikace je k dispozici. Prosím aktualizujte aplikaci pro nejlepší zážitek.';
+  String get body => 'Nová verze aplikace je k dispozici na Google Play. Prosím aktualizujte aplikaci pro nejlepší zážitek a nejnovější funkce.';
 
   @override
   String get buttonTitleIgnore => 'Později';
@@ -20,13 +19,16 @@ class CzechUpgraderMessages extends UpgraderMessages {
   String get buttonTitleLater => 'Později';
 
   @override
-  String get buttonTitleUpdate => 'Aktualizovat';
+  String get buttonTitleUpdate => 'Aktualizovat na Google Play';
 
   @override
   String get prompt => 'Aktualizace dostupná';
 
   @override
   String get title => 'Aktualizace aplikace';
+
+  @override
+  String get releaseNotes => 'Nové funkce a vylepšení';
 }
 
 /// Service for checking and handling app updates

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../../core/constants/app_constants.dart';
-import '../../core/services/update_service.dart';
 import '../foundations/motion.dart';
 import '../foundations/colors.dart';
 
@@ -42,9 +41,8 @@ class _SplashPageState extends State<SplashPage> with SingleTickerProviderStateM
     ]).then((_) async {
       if (!mounted) return;
       
-      // Check for updates after splash screen
-      await UpdateService().initialize();
-      await UpdateService().checkForUpdates(context, forceUpdate: true);
+      // UpdateChecker widget handles update checking automatically
+      // No need to manually check here
       
       if (!mounted) return;
       

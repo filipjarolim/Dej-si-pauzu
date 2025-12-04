@@ -9,9 +9,6 @@ import '../../core/constants/app_routes.dart';
 class AppTransitions {
   AppTransitions._();
 
-  // Track previous route path for slide direction
-  static String? _previousRoutePath;
-
   static CustomTransitionPage<T> sharedAxisHorizontal<T>({
     required Widget child,
   }) {
@@ -85,10 +82,6 @@ class AppTransitions {
     required Widget child,
     required String routePath,
   }) {
-    // Update previous route path (only if it's a tab route)
-    if (_isTabRoute(routePath)) {
-      _previousRoutePath = routePath;
-    }
 
     return CustomTransitionPage<T>(
       key: ValueKey<String>(routePath), // Important: unique key for each route
@@ -123,15 +116,6 @@ class AppTransitions {
         path == AppRoutes.mood ||
         path == AppRoutes.tips ||
         path == AppRoutes.partner;
-  }
-
-  /// Get tab index from route path
-  static int _getTabIndex(String path) {
-    if (path.startsWith(AppRoutes.pause)) return 1;
-    if (path.startsWith(AppRoutes.mood)) return 2;
-    if (path.startsWith(AppRoutes.tips)) return 3;
-    if (path.startsWith(AppRoutes.partner)) return 4;
-    return 0; // home
   }
 }
 
