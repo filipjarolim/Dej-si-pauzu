@@ -9,6 +9,7 @@ import '../foundations/colors.dart';
 import '../foundations/design_tokens.dart';
 import '../widgets/app_scaffold.dart';
 import '../widgets/app_button.dart';
+import '../widgets/app_back_button_handler.dart';
 import '../../core/constants/app_routes.dart';
 
 class AuthPage extends StatefulWidget {

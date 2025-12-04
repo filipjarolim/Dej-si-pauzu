@@ -17,8 +17,17 @@ import '../ui/pages/settings_page.dart';
 import '../ui/pages/profile_page.dart';
 import '../ui/pages/stats_page.dart';
 import '../ui/widgets/app_bottom_nav.dart';
+import '../ui/widgets/app_back_button_handler.dart';
 import '../ui/foundations/design_tokens.dart';
 import '../ui/foundations/colors.dart';
+
+/// Helper to wrap route pages with back button handler
+Widget _wrapWithBackButtonHandler(Widget child, {bool showConfirmation = false}) {
+  return AppBackButtonHandler(
+    showConfirmationOnExit: showConfirmation,
+    child: child,
+  );
+}
 
 final GoRouter appRouter = GoRouter(
   initialLocation: AppRoutes.splash,
@@ -158,7 +167,10 @@ final GoRouter appRouter = GoRouter(
       path: AppRoutes.list,
       pageBuilder: (BuildContext context, GoRouterState state) {
         return AppTransitions.sharedAxisHorizontal(
-          child: const ListPage(),
+          child: _wrapWithBackButtonHandler(
+            const ListPage(),
+            showConfirmation: false,
+          ),
         );
       },
     ),
@@ -166,7 +178,10 @@ final GoRouter appRouter = GoRouter(
       path: AppRoutes.database,
       pageBuilder: (BuildContext context, GoRouterState state) {
         return AppTransitions.fadeScale(
-          child: const DatabasePage(),
+          child: _wrapWithBackButtonHandler(
+            const DatabasePage(),
+            showConfirmation: false,
+          ),
         );
       },
     ),
@@ -174,7 +189,10 @@ final GoRouter appRouter = GoRouter(
       path: AppRoutes.auth,
       pageBuilder: (BuildContext context, GoRouterState state) {
         return AppTransitions.fadeScale(
-          child: const AuthPage(),
+          child: _wrapWithBackButtonHandler(
+            const AuthPage(),
+            showConfirmation: false,
+          ),
         );
       },
     ),
@@ -182,7 +200,10 @@ final GoRouter appRouter = GoRouter(
       path: AppRoutes.settings,
       pageBuilder: (BuildContext context, GoRouterState state) {
         return AppTransitions.fadeScale(
-          child: const SettingsPage(),
+          child: _wrapWithBackButtonHandler(
+            const SettingsPage(),
+            showConfirmation: false,
+          ),
         );
       },
     ),
@@ -190,7 +211,10 @@ final GoRouter appRouter = GoRouter(
       path: AppRoutes.profile,
       pageBuilder: (BuildContext context, GoRouterState state) {
         return AppTransitions.fadeScale(
-          child: const ProfilePage(),
+          child: _wrapWithBackButtonHandler(
+            const ProfilePage(),
+            showConfirmation: false,
+          ),
         );
       },
     ),
@@ -198,7 +222,10 @@ final GoRouter appRouter = GoRouter(
       path: AppRoutes.stats,
       pageBuilder: (BuildContext context, GoRouterState state) {
         return AppTransitions.fadeScale(
-          child: const StatsPage(),
+          child: _wrapWithBackButtonHandler(
+            const StatsPage(),
+            showConfirmation: false,
+          ),
         );
       },
     ),
