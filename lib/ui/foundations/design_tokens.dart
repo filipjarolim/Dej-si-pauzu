@@ -9,41 +9,45 @@ class DesignTokens {
   static const double radiusXs = 8;
   static const double radiusSm = 12;
   static const double radiusMd = 16;
-  static const double radiusLg = 20;
-  static const double radiusXl = 24;
-  static const double radiusXxl = 32;
+  static const double radiusLg = 24; // Increased for friendlier look
+  static const double radiusXl = 32;
+  static const double radiusXxl = 40;
   static const double radiusRound = 999;
 
-  // Elevation/shadow
+  // Elevation/shadow - Softened, colored shadows ("Glows")
   static List<BoxShadow> shadowSm = <BoxShadow>[
     BoxShadow(
-      color: AppColors.black.withOpacity(0.04),
-      blurRadius: 4,
+      color: AppColors.deepBlue.withValues(alpha: 0.05),
+      blurRadius: 8,
       offset: const Offset(0, 2),
     ),
   ];
 
   static List<BoxShadow> shadowMd = <BoxShadow>[
     BoxShadow(
-      color: AppColors.black.withOpacity(0.06),
-      blurRadius: 8,
+      color: AppColors.deepBlue.withValues(alpha: 0.08),
+      blurRadius: 12,
       offset: const Offset(0, 4),
+      spreadRadius: -2,
     ),
   ];
 
   static List<BoxShadow> shadowLg = <BoxShadow>[
     BoxShadow(
-      color: AppColors.black.withOpacity(0.08),
-      blurRadius: 16,
+      color: AppColors.deepBlue.withValues(alpha: 0.12),
+      blurRadius: 24,
       offset: const Offset(0, 8),
+      spreadRadius: -4,
     ),
   ];
-
-  static List<BoxShadow> shadowXl = <BoxShadow>[
+  
+  // Special "Floaty" shadow for key elements
+  static List<BoxShadow> shadowFloat = <BoxShadow>[
     BoxShadow(
-      color: AppColors.black.withOpacity(0.12),
-      blurRadius: 24,
-      offset: const Offset(0, 12),
+      color: AppColors.deepBlue.withValues(alpha: 0.15),
+      blurRadius: 30,
+      offset: const Offset(0, 10),
+      spreadRadius: -5,
     ),
   ];
 
@@ -76,49 +80,3 @@ class DesignTokens {
   static const double containerXl = 64;
   static const double containerXxl = 80;
 }
-
-/// Gradient presets using signature colors
-class AppGradients {
-  AppGradients._();
-
-  static const LinearGradient primary = LinearGradient(
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-    colors: AppColors.gradientOcean,
-  );
-
-  static const LinearGradient secondary = LinearGradient(
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-    colors: AppColors.gradientSunset,
-  );
-
-  static const LinearGradient accent = LinearGradient(
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-    colors: AppColors.gradientNature,
-  );
-
-  static const LinearGradient playful = LinearGradient(
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-    colors: AppColors.gradientPlayful,
-  );
-
-  static const LinearGradient calm = LinearGradient(
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-    colors: AppColors.gradientCalm,
-  );
-
-  static LinearGradient background = LinearGradient(
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-    colors: <Color>[
-      AppColors.white,
-      AppColors.skyBlue.withOpacity(0.05),
-      AppColors.mintGreen.withOpacity(0.03),
-    ],
-  );
-}
-

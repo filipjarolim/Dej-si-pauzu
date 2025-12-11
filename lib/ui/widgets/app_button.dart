@@ -48,10 +48,15 @@ class _AppButtonState extends State<AppButton> {
           widget.leading!,
           const SizedBox(width: AppSpacing.sm),
         },
-        Text(
-          widget.label,
-          style: textStyle.copyWith(
-            fontWeight: FontWeight.w700,
+        Flexible(
+          child: Text(
+            widget.label,
+            style: textStyle.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
           ),
         ),
       ],

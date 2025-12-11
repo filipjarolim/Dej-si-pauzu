@@ -109,6 +109,81 @@ class AppTransitions {
     );
   }
 
+  /// Card slide transition - page slides in from the right like a card
+  static CustomTransitionPage<T> cardSlide<T>({
+    required Widget child,
+  }) {
+    return CustomTransitionPage<T>(
+      transitionDuration: const Duration(milliseconds: 500),
+      reverseTransitionDuration: const Duration(milliseconds: 400),
+      child: child,
+      transitionsBuilder: (
+        BuildContext context,
+        Animation<double> animation,
+        Animation<double> secondaryAnimation,
+        Widget child,
+      ) {
+        // Slide from right with smooth curve
+        final Animation<Offset> slideAnimation = Tween<Offset>(
+          begin: const Offset(1.0, 0.0),
+          end: Offset.zero,
+        ).animate(
+          CurvedAnimation(
+            parent: animation,
+            curve: Curves.easeOutCubic,
+          ),
+        );
+
+        // Fade in
+        final Animation<double> fadeAnimation = Tween<double>(
+          begin: 0.0,
+          end: 1.0,
+        ).animate(
+          CurvedAnimation(
+            parent: animation,
+            curve: const Interval(0.3, 1.0, curve: Curves.easeOut),
+          ),
+        );
+
+        // Scale animation for card effect
+        final Animation<double> scaleAnimation = Tween<double>(
+          begin: 0.95,
+          end: 1.0,
+        ).animate(
+          CurvedAnimation(
+            parent: animation,
+            curve: Curves.easeOutCubic,
+          ),
+        );
+
+        // Old page slides out to left
+        final Animation<Offset> secondarySlide = Tween<Offset>(
+          begin: Offset.zero,
+          end: const Offset(-0.3, 0.0),
+        ).animate(
+          CurvedAnimation(
+            parent: secondaryAnimation,
+            curve: Curves.easeInCubic,
+          ),
+        );
+
+        return SlideTransition(
+          position: secondarySlide,
+          child: SlideTransition(
+            position: slideAnimation,
+            child: FadeTransition(
+              opacity: fadeAnimation,
+              child: ScaleTransition(
+                scale: scaleAnimation,
+                child: child,
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   /// Check if route is a bottom nav tab route
   static bool _isTabRoute(String path) {
     return path == AppRoutes.home ||

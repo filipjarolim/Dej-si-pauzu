@@ -19,7 +19,7 @@ if (hasKeystore) {
 
 android {
     namespace = "com.vofidevs.dejsipauzu"
-    compileSdk = flutter.compileSdkVersion
+    compileSdk = 36
     ndkVersion = "27.0.12077973"
 
     compileOptions {

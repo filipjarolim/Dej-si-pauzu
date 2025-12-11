@@ -1,3 +1,4 @@
+import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter/services.dart';
@@ -15,9 +16,12 @@ class AppBottomNav extends StatefulWidget {
   State<AppBottomNav> createState() => _AppBottomNavState();
 }
 
-class _AppBottomNavState extends State<AppBottomNav> with SingleTickerProviderStateMixin {
+class _AppBottomNavState extends State<AppBottomNav> with TickerProviderStateMixin {
   late AnimationController _animationController;
+  late AnimationController _expandController;
+  late AnimationController _fadeController; // For smooth navbar fade out on AI Chat tab
   int _previousIndex = -1;
+  bool _isExpanded = false;
 
   @override
   void initState() {
@@ -28,12 +32,34 @@ class _AppBottomNavState extends State<AppBottomNav> with SingleTickerProviderSt
       lowerBound: 0.0,
       upperBound: 1.0,
     );
+    _expandController = AnimationController(
+      vsync: this,
+      duration: AppMotion.medium,
+    );
+    _fadeController = AnimationController(
+      vsync: this,
+      duration: AppMotion.medium,
+    );
   }
 
   @override
   void dispose() {
     _animationController.dispose();
+    _expandController.dispose();
+    _fadeController.dispose();
     super.dispose();
+  }
+
+  void _toggleExpand() {
+    setState(() {
+      _isExpanded = !_isExpanded;
+      if (_isExpanded) {
+        _expandController.forward();
+      } else {
+        _expandController.reverse();
+      }
+    });
+    HapticFeedback.selectionClick();
   }
 
   int _indexForLocation(String location) {
@@ -74,8 +100,11 @@ class _AppBottomNavState extends State<AppBottomNav> with SingleTickerProviderSt
   Widget build(BuildContext context) {
     final String location = GoRouterState.of(context).uri.path;
     final int selected = _indexForLocation(location);
-    final ColorScheme cs = Theme.of(context).colorScheme;
-
+    
+    // Standard height for all tabs
+    const double navbarHeight = 96.0;
+    final bool isAIChatTab = selected == 2;
+    
     // Trigger animation when selection changes
     if (selected != _previousIndex && _previousIndex != -1) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -89,176 +118,94 @@ class _AppBottomNavState extends State<AppBottomNav> with SingleTickerProviderSt
     }
 
     return RepaintBoundary(
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: <Widget>[
-          Container(
-        decoration: BoxDecoration(
-              color: AppColors.gray50,
-          boxShadow: DesignTokens.shadowMd,
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(DesignTokens.radiusXl),
-                topRight: Radius.circular(DesignTokens.radiusXl),
-              ),
-            ),
-            child: SafeArea(
-              top: false,
-        child: Container(
-          decoration: BoxDecoration(
-                  color: AppColors.gray50,
-                  borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(DesignTokens.radiusXl),
-                    topRight: Radius.circular(DesignTokens.radiusXl),
+      child: Align(
+        alignment: Alignment.bottomCenter,
+        child: Padding(
+          padding: EdgeInsets.only(
+            left: 32,
+            right: 32,
+            bottom: MediaQuery.of(context).viewInsets.bottom > 0 
+                ? 0 
+                : 0, 
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(48),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+              child: Container(
+                height: navbarHeight,
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8), // Normalized padding
+                decoration: BoxDecoration(
+                  color: AppColors.white.withOpacity(0.90), // Slightly more opaque
+                  border: Border.all(
+                    color: Colors.white.withOpacity(0.5),
+                    width: 1,
                   ),
+                  boxShadow: DesignTokens.shadowMd, // Always shadow
                 ),
                 child: Theme(
                   data: Theme.of(context).copyWith(
                     splashColor: Colors.transparent,
                     highlightColor: Colors.transparent,
                     splashFactory: NoSplash.splashFactory,
-                    navigationBarTheme: NavigationBarThemeData(
-                      labelTextStyle: MaterialStateProperty.resolveWith<TextStyle?>(
-                        (Set<MaterialState> states) {
-                          if (states.contains(MaterialState.selected)) {
-                            // Bigger text for pause tab (index 1)
-                            final double fontSize = selected == 1 ? 16 : 12;
-                            final Color textColor = selected == 1 
-                                ? const Color(0xFFFFB800) // Yellow color
-                                : AppColors.primary;
-                            return GoogleFonts.quicksand(
-                              fontSize: fontSize,
-                              fontWeight: FontWeight.w700,
-                              color: textColor,
-                            );
-                          }
-                          return GoogleFonts.quicksand(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.gray600,
-                          );
-                        },
+                  ),
+                  child: NavigationBar(
+                    backgroundColor: Colors.transparent,
+                    surfaceTintColor: Colors.transparent,
+                    elevation: 0,
+                    height: navbarHeight,
+                    labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+                    selectedIndex: selected,
+                    indicatorColor: AppColors.primary.withOpacity(0.1),
+                    animationDuration: const Duration(milliseconds: 400),
+                    onDestinationSelected: (int idx) {
+                      HapticFeedback.selectionClick();
+                      _handleTabChange(idx, selected);
+                      context.go(_locationForIndex(idx));
+                    },
+                    destinations: <Widget>[
+                      _AnimatedNavDestination(
+                        icon: Icons.home_outlined,
+                        selectedIcon: Icons.home,
+                        label: 'Domů',
+                        isSelected: selected == 0,
+                        animation: _animationController,
                       ),
-                      iconTheme: MaterialStateProperty.resolveWith<IconThemeData?>(
-                        (Set<MaterialState> states) {
-                          if (states.contains(MaterialState.selected)) {
-                            final Color iconColor = selected == 1 
-                                ? const Color(0xFFFFB800) // Yellow color
-                                : AppColors.primary;
-                            return IconThemeData(color: iconColor);
-                          }
-                          return IconThemeData(color: AppColors.gray600);
-                        },
+                      _PauseNavDestination(
+                        icon: Icons.self_improvement_outlined,
+                        selectedIcon: Icons.self_improvement,
+                        label: 'Pauza',
+                        isSelected: selected == 1,
+                        animation: _animationController,
+                      ),
+                      _AnimatedNavDestination(
+                        icon: Icons.chat_bubble_outline,
+                        selectedIcon: Icons.chat_bubble,
+                        label: 'Parťák',
+                        isSelected: selected == 2,
+                        animation: _animationController,
+                      ),
+                      _AnimatedNavDestination(
+                        icon: Icons.tips_and_updates_outlined,
+                        selectedIcon: Icons.tips_and_updates,
+                        label: 'Tipy',
+                        isSelected: selected == 3,
+                        animation: _animationController,
+                      ),
+                      _AnimatedNavDestination(
+                        icon: Icons.mood_outlined,
+                        selectedIcon: Icons.mood,
+                        label: 'Nálada',
+                        isSelected: selected == 4,
+                        animation: _animationController,
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
-                  ),
-                  child: ClipRRect(
-                    borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(DesignTokens.radiusXl),
-                      topRight: Radius.circular(DesignTokens.radiusXl),
-          ),
-          child: NavigationBar(
-                      backgroundColor: AppColors.gray50,
-            surfaceTintColor: Colors.transparent,
-            elevation: 0,
-            height: 76,
-                      labelBehavior: NavigationDestinationLabelBehavior.onlyShowSelected,
-            selectedIndex: selected,
-                      indicatorColor: selected == 2 
-                          ? Colors.transparent 
-                          : (selected == 1 
-                              ? const Color(0xFFFFB800).withOpacity(0.15) // Yellow
-                              : AppColors.primary.withOpacity(0.1)),
-                      animationDuration: const Duration(milliseconds: 400), // Match page transition duration
-            onDestinationSelected: (int idx) {
-              HapticFeedback.selectionClick();
-              _handleTabChange(idx, selected);
-              _previousIndex = selected;
-              final String target = _locationForIndex(idx);
-              if (target == location) {
-                final ScrollController? c = PrimaryScrollController.maybeOf(context);
-                c?.animateTo(
-                  0,
-                  duration: AppMotion.medium,
-                  curve: Curves.easeOutCubic,
-                );
-                return;
-              }
-                        // Use go() - the PageView in _TabShell will handle the animation
-              context.go(target);
-            },
-            destinations: <Widget>[
-              _AnimatedNavDestination(
-                icon: Icons.home_outlined,
-                selectedIcon: Icons.home,
-                label: 'Domů',
-                isSelected: selected == 0,
-                animation: _animationController,
-              ),
-                        _PauseNavDestination(
-                icon: Icons.self_improvement_outlined,
-                selectedIcon: Icons.self_improvement,
-                label: 'Pauza',
-                isSelected: selected == 1,
-                animation: _animationController,
-              ),
-                        // Special AI Chat tab with image - placeholder, actual image rendered above
-                        _AIChatNavDestination(
-                isSelected: selected == 2,
-                animation: _animationController,
-                          showImage: false, // Don't show image here, it's rendered above
-              ),
-              _AnimatedNavDestination(
-                icon: Icons.tips_and_updates_outlined,
-                selectedIcon: Icons.tips_and_updates,
-                label: 'Tipy',
-                isSelected: selected == 3,
-                animation: _animationController,
-              ),
-              _AnimatedNavDestination(
-                          icon: Icons.mood_outlined,
-                          selectedIcon: Icons.mood,
-                          label: 'Nálada',
-                isSelected: selected == 4,
-                animation: _animationController,
-              ),
-            ],
           ),
         ),
-                ),
-              ),
-            ),
-          ),
-          // Overlay AI Chat image that can overflow navbar bounds
-          Positioned(
-            bottom: 18, // Position higher to allow overflow above navbar (76/2 - 20 for overflow space)
-            left: MediaQuery.of(context).size.width / 2 - 49.5, // Center horizontally, offset by half image width (99/2)
-            child: GestureDetector(
-              onTap: () {
-                HapticFeedback.selectionClick();
-                _handleTabChange(2, selected);
-                _previousIndex = selected;
-                final String target = _locationForIndex(2);
-                if (target == location) {
-                  final ScrollController? c = PrimaryScrollController.maybeOf(context);
-                  c?.animateTo(
-                    0,
-                    duration: AppMotion.medium,
-                    curve: Curves.easeOutCubic,
-                  );
-                  return;
-                }
-                context.go(target);
-              },
-              child: Opacity(
-                opacity: selected == 2 ? 1.0 : 0.6,
-                child: _AIChatImageOverlay(
-                  isSelected: selected == 2,
-                  animation: _animationController,
-                ),
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -283,6 +230,10 @@ class _AnimatedNavDestination extends StatelessWidget {
   Widget build(BuildContext context) {
     final ColorScheme cs = Theme.of(context).colorScheme;
     
+    // Determine colors
+    final Color normalColor = AppColors.gray500;
+    final Color selectedColor = AppColors.primary;
+    
     return AnimatedBuilder(
       animation: animation,
       builder: (BuildContext context, Widget? child) {
@@ -297,9 +248,7 @@ class _AnimatedNavDestination extends StatelessWidget {
             child: Icon(
               icon,
               size: DesignTokens.iconMd,
-              color: isSelected 
-                  ? AppColors.primary 
-                  : AppColors.gray500,
+              color: isSelected ? selectedColor : normalColor,
             ),
           ),
           selectedIcon: Transform.scale(
@@ -307,7 +256,7 @@ class _AnimatedNavDestination extends StatelessWidget {
             child: Icon(
               selectedIcon,
               size: 26,
-              color: AppColors.primary,
+              color: selectedColor,
             ),
           ),
           label: label,
@@ -488,6 +437,55 @@ class _PauseNavDestination extends StatelessWidget {
           tooltip: label,
         );
       },
+    );
+  }
+}
+
+class _ExpandedIconButton extends StatelessWidget {
+  const _ExpandedIconButton({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        HapticFeedback.selectionClick();
+        onTap();
+      },
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: AppColors.primary.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(DesignTokens.radiusMd),
+            ),
+            child: Icon(
+              icon,
+              color: AppColors.primary,
+              size: 24,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            label,
+            style: GoogleFonts.quicksand(
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+              color: AppColors.gray700,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

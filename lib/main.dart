@@ -3,6 +3,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'router/app_router.dart';
 import 'debug/perf.dart';
@@ -14,6 +15,7 @@ import 'core/services/app_service.dart';
 import 'core/services/database_service.dart';
 import 'core/services/auth_service.dart';
 import 'core/services/statistics_service.dart';
+import 'core/services/video_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -54,9 +56,24 @@ Future<void> main() async {
   ServiceRegistry.register<DatabaseService>(DatabaseService());
   ServiceRegistry.register<AuthService>(AuthService());
   ServiceRegistry.register<StatisticsService>(StatisticsService());
+  ServiceRegistry.register<VideoService>(VideoService());
   
-  // Initialize all services
+  // Initialize all services (includes video preloading)
   await ServiceRegistry.initializeAll();
+
+  // Lock orientation to portrait for consistent mobile experience
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
+  ]);
+  
+  // Ensure system UI overlay style is modern (transparent status bar)
+  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+    statusBarColor: Colors.transparent,
+    statusBarIconBrightness: Brightness.dark,
+    systemNavigationBarColor: Colors.transparent,
+    systemNavigationBarIconBrightness: Brightness.dark,
+  ));
 
   runApp(const MyApp());
 }
@@ -266,9 +283,9 @@ class MyApp extends StatelessWidget {
           backgroundColor: AppColors.white,
           elevation: 0,
           indicatorColor: AppColors.primary.withOpacity(0.1),
-          labelTextStyle: MaterialStateProperty.resolveWith<TextStyle?>(
-            (Set<MaterialState> states) {
-              if (states.contains(MaterialState.selected)) {
+          labelTextStyle: WidgetStateProperty.resolveWith<TextStyle?>(
+            (Set<WidgetState> states) {
+              if (states.contains(WidgetState.selected)) {
                 return GoogleFonts.quicksand(
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
@@ -282,9 +299,9 @@ class MyApp extends StatelessWidget {
               );
             },
           ),
-          iconTheme: MaterialStateProperty.resolveWith<IconThemeData?>(
-            (Set<MaterialState> states) {
-              if (states.contains(MaterialState.selected)) {
+          iconTheme: WidgetStateProperty.resolveWith<IconThemeData?>(
+            (Set<WidgetState> states) {
+              if (states.contains(WidgetState.selected)) {
                 return const IconThemeData(color: AppColors.primary);
               }
               return IconThemeData(color: AppColors.gray600);
@@ -302,21 +319,18 @@ class MyApp extends StatelessWidget {
         ),
       ),
       builder: (BuildContext context, Widget? child) {
-        // Lock text scaling on Android for consistent typographic rhythm across devices.
+        // Lock text scaling globally for consistent typographic rhythm across all devices.
         final MediaQueryData mq = MediaQuery.of(context);
-        final bool isAndroid = Theme.of(context).platform == TargetPlatform.android;
         final Widget wrappedChild = GestureDetector(
           behavior: HitTestBehavior.translucent,
           onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
           child: child,
         );
-        if (isAndroid) {
-          return MediaQuery(
-            data: mq.copyWith(textScaler: const TextScaler.linear(1.0)),
-            child: wrappedChild,
-          );
-        }
-        return wrappedChild;
+        // Force text scale factor to 1.0 regardless of system settings
+        return MediaQuery(
+          data: mq.copyWith(textScaler: const TextScaler.linear(1.0)),
+          child: wrappedChild,
+        );
       },
       routerConfig: appRouter,
     ),

@@ -1,6 +1,5 @@
 import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
-import '../foundations/design_tokens.dart';
 import '../foundations/colors.dart';
 
 /// Custom AppBar with rounded bottom corners and frosted glass effect

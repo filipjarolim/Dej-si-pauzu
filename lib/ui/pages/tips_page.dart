@@ -4,7 +4,7 @@ import '../foundations/spacing.dart';
 import '../foundations/design_tokens.dart';
 import '../foundations/colors.dart';
 import '../widgets/app_scaffold.dart';
-import '../widgets/app_bottom_nav.dart';
+import '../widgets/personality_cards_widget.dart';
 
 class TipsPage extends StatelessWidget {
   const TipsPage({super.key});
@@ -14,152 +14,182 @@ class TipsPage extends StatelessWidget {
     final TextTheme text = Theme.of(context).textTheme;
     final ColorScheme cs = Theme.of(context).colorScheme;
 
-    final List<Map<String, dynamic>> _tips = <Map<String, dynamic>>[
+    final List<Map<String, dynamic>> tips = <Map<String, dynamic>>[
       <String, dynamic>{
         'title': 'Hluboké dýchání',
         'subtitle': '4-7-8 technika',
         'icon': Icons.air,
         'description': 'Nadechni se na 4 doby, zadrž na 7, vydechni na 8.',
+        'color': const Color(0xFF6366F1), // Indigo
       },
       <String, dynamic>{
         'title': 'Procházka',
         'subtitle': '5 minut venku',
         'icon': Icons.directions_walk,
-        'description': 'I krátká procházka může změnit tvou náladu.',
+        'description': 'I krátká procházka zvýší hladinu endorfinů.',
+        'color': const Color(0xFF34D399), // Emerald
       },
       <String, dynamic>{
         'title': 'Meditace',
         'subtitle': 'Mindfulness',
         'icon': Icons.self_improvement,
-        'description': 'Věnuj chvíli pozornosti svému dechu a přítomnosti.',
+        'description': 'Věnuj chvíli pozornosti svému dechu.',
+        'color': const Color(0xFFEC4899), // Pink
       },
       <String, dynamic>{
         'title': 'Pití vody',
         'subtitle': 'Hydratace',
         'icon': Icons.water_drop,
-        'description': 'Dehydratace může zhoršit úzkost a stres.',
+        'description': 'Dehydratace zvyšuje úzkost.',
+        'color': const Color(0xFF38BDF8), // Sky
+      },
+      <String, dynamic>{
+        'title': 'Spánek',
+        'subtitle': 'Regenerace',
+        'icon': Icons.bedtime,
+        'description': 'Kvalitní spánek je základ.',
+        'color': const Color(0xFFF59E0B), // Amber
+      },
+      <String, dynamic>{
+        'title': 'Čtení',
+        'subtitle': 'Odpočinek',
+        'icon': Icons.menu_book,
+        'description': 'Ponoř se do jiného světa.',
+        'color': const Color(0xFF8B5CF6), // Violet
       },
     ];
 
+    // Split for masonry
+    final leftColumn = <Map<String, dynamic>>[];
+    final rightColumn = <Map<String, dynamic>>[];
+    for (var i = 0; i < tips.length; i++) {
+      if (i % 2 == 0) {
+        leftColumn.add(tips[i]);
+      } else {
+        rightColumn.add(tips[i]);
+      }
+    }
+
     return AppScaffold(
+      backgroundColor: AppColors.surfaceSubtle,
       appBar: AppBar(title: const Text('Tipy na zklidnění')),
-      bottomBar: null, // Navbar provided by ShellRoute
+      bottomBar: null,
       body: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.only(top: AppSpacing.xl),
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+            const SizedBox(height: AppSpacing.lg),
+            Text(
+              'Inspirace',
+              style: text.headlineMedium?.copyWith(
+                fontWeight: FontWeight.w900,
+                color: AppColors.gray900,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Malé kroky k velké pohodě.',
+              style: text.bodyLarge?.copyWith(
+                color: AppColors.gray500,
+              ),
+            ),
+            const SizedBox(height: 24),
+            
+            // AI Personality Section (Optional highlight)
+            const PersonalityCardsWidget(),
+            
+            const SizedBox(height: 32),
+
+            // Masonry Grid
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    children: leftColumn.map((tip) => _buildTipCard(tip, text)).toList(),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                     children: rightColumn.map((tip) => _buildTipCard(tip, text)).toList(),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 100),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTipCard(Map<String, dynamic> tip, TextTheme text) {
+    final Color color = tip['color'] as Color;
+    
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 16,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: () {},
+            borderRadius: BorderRadius.circular(24),
+            child: Padding(
+              padding: const EdgeInsets.all(20.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: color.withOpacity(0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(tip['icon'] as IconData, color: color, size: 24),
+                  ),
+                  const SizedBox(height: 16),
                   Text(
-                    'Rychlá zklidnění',
-                    style: text.headlineMedium?.copyWith(
+                    tip['title'] as String,
+                    style: text.titleMedium?.copyWith(
                       fontWeight: FontWeight.w800,
-                      letterSpacing: -0.5,
+                      height: 1.1,
                     ),
                   ),
-                  const SizedBox(height: AppSpacing.md + 4),
+                  const SizedBox(height: 4),
                   Text(
-                    'Krátké rady a nápady, jak se uvolnit a pečovat o sebe v každodenním životě.',
-                    style: text.bodyLarge?.copyWith(
-                      color: cs.onSurfaceVariant,
-                      height: 1.6,
+                    tip['subtitle'] as String,
+                    style: text.bodySmall?.copyWith(
+                      color: AppColors.gray500,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    tip['description'] as String,
+                    style: text.bodyMedium?.copyWith(
+                      color: AppColors.gray600,
+                      height: 1.4,
+                      fontSize: 13,
                     ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: AppSpacing.xl + 4),
-            ...List<Widget>.generate(
-              _tips.length,
-              (int index) {
-                final Map<String, dynamic> tip = _tips[index];
-                return Padding(
-                  padding: EdgeInsets.only(
-                    left: AppSpacing.lg,
-                    right: AppSpacing.lg,
-                    bottom: AppSpacing.lg,
-                  ),
-                  child: Material(
-                    color: AppColors.white,
-                    borderRadius: BorderRadius.circular(DesignTokens.radiusLg),
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(DesignTokens.radiusLg),
-                      onTap: () {
-                        // Show tip detail functionality will be implemented
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.all(20),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(DesignTokens.radiusLg),
-                          border: Border.all(
-                            color: AppColors.gray200,
-                            width: DesignTokens.borderMedium,
-                          ),
-                        ),
-                        child: Row(
-                          children: <Widget>[
-                            Container(
-                              width: 56,
-                              height: 56,
-                              decoration: BoxDecoration(
-                                color: cs.primary.withOpacity(0.08),
-                                borderRadius: BorderRadius.circular(DesignTokens.radiusMd),
-                                border: Border.all(
-                                  color: cs.primary.withOpacity(0.12),
-                                  width: DesignTokens.borderThin,
-                                ),
-                              ),
-                              child: Icon(
-                                tip['icon'] as IconData,
-                                size: 28,
-                                color: cs.primary,
-                              ),
-                            ),
-                            const SizedBox(width: AppSpacing.lg),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: <Widget>[
-                                  Text(
-                                    tip['title'] as String,
-                                    style: text.titleMedium?.copyWith(
-                                      fontWeight: FontWeight.w800,
-                                      letterSpacing: -0.3,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    tip['subtitle'] as String,
-                                    style: text.bodySmall?.copyWith(
-                                      color: cs.onSurfaceVariant,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    tip['description'] as String,
-                                    style: text.bodyMedium?.copyWith(
-                                      color: cs.onSurfaceVariant,
-                                      height: 1.5,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                );
-              },
-            ),
-            const SizedBox(height: AppSpacing.xl),
-          ],
+          ),
         ),
       ),
     );

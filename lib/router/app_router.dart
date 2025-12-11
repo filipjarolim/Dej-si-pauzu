@@ -6,19 +6,19 @@ import '../core/constants/app_routes.dart';
 import '../ui/navigation/transitions.dart';
 import '../ui/pages/home_page.dart';
 import '../ui/pages/splash_page.dart';
-import '../ui/pages/list_page.dart';
-import '../ui/pages/database_page.dart';
-import '../ui/pages/auth_page.dart';
-import '../ui/pages/pause_page.dart';
+import '../ui/pages/pause_menu_page.dart';
+import '../ui/pages/breathing_page.dart';
+import '../ui/pages/meditation_page.dart';
+import '../ui/pages/stretching_page.dart';
 import '../ui/pages/mood_page.dart';
 import '../ui/pages/tips_page.dart';
 import '../ui/pages/partner_page.dart';
-import '../ui/pages/settings_page.dart';
+import '../ui/pages/database_page.dart';
 import '../ui/pages/profile_page.dart';
-import '../ui/pages/stats_page.dart';
 import '../ui/widgets/app_bottom_nav.dart';
 import '../ui/widgets/app_back_button_handler.dart';
 import '../ui/foundations/design_tokens.dart';
+import '../core/services/navbar_service.dart';
 import '../ui/foundations/colors.dart';
 
 /// Helper to wrap route pages with back button handler
@@ -33,8 +33,8 @@ final GoRouter appRouter = GoRouter(
   initialLocation: AppRoutes.splash,
   redirect: (BuildContext context, GoRouterState state) {
     // Handle deep links from Android shortcuts
-    final Uri? uri = state.uri;
-    if (uri != null && uri.scheme == 'dejsipauzu') {
+    final Uri uri = state.uri;
+    if (uri.scheme == 'dejsipauzu') {
       final String path = uri.path;
       if (path == '/pause') {
         return AppRoutes.pause;
@@ -110,8 +110,23 @@ final GoRouter appRouter = GoRouter(
           },
           child: Scaffold(
             backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+            extendBody: true, // Always float navbar for consistent design
             body: navigator,
-            bottomNavigationBar: const AppBottomNav(),
+            bottomNavigationBar: ValueListenableBuilder<bool>(
+              valueListenable: NavbarService.instance.isVisible,
+              builder: (context, isVisible, child) {
+                return AnimatedContainer(
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeInOutCubic,
+                  height: isVisible ? 110.0 : 0.0, // accommodated for floating pill + margins
+                  child: SingleChildScrollView( // Prevent overflow error when shrinking
+                    physics: const NeverScrollableScrollPhysics(),
+                    child: child,
+                  ),
+                );
+              },
+              child: const AppBottomNav(),
+            ),
           ),
         );
       },
@@ -130,9 +145,44 @@ final GoRouter appRouter = GoRouter(
       pageBuilder: (BuildContext context, GoRouterState state) {
             return AppTransitions.tabSlide(
               routePath: state.uri.path,
-              child: const PausePage(),
+              child: const PauseMenuPage(),
             );
       },
+      routes: <RouteBase>[
+        GoRoute(
+          path: 'breathing',
+          pageBuilder: (BuildContext context, GoRouterState state) {
+            return AppTransitions.cardSlide(
+              child: _wrapWithBackButtonHandler(
+                const BreathingPage(),
+                showConfirmation: false,
+              ),
+            );
+          },
+        ),
+        GoRoute(
+          path: 'meditation',
+          pageBuilder: (BuildContext context, GoRouterState state) {
+            return AppTransitions.cardSlide(
+              child: _wrapWithBackButtonHandler(
+                const MeditationPage(),
+                showConfirmation: false,
+              ),
+            );
+          },
+        ),
+        GoRoute(
+          path: 'stretching',
+          pageBuilder: (BuildContext context, GoRouterState state) {
+            return AppTransitions.cardSlide(
+              child: _wrapWithBackButtonHandler(
+                const StretchingPage(),
+                showConfirmation: false,
+              ),
+            );
+          },
+        ),
+      ],
     ),
     GoRoute(
       path: AppRoutes.mood,
@@ -152,83 +202,45 @@ final GoRouter appRouter = GoRouter(
             );
       },
     ),
-    GoRoute(
-      path: AppRoutes.partner,
-      pageBuilder: (BuildContext context, GoRouterState state) {
-            return AppTransitions.tabSlide(
-              routePath: state.uri.path,
-              child: const PartnerPage(),
-            );
-      },
-        ),
+          GoRoute(
+            path: AppRoutes.partner,
+            pageBuilder: (BuildContext context, GoRouterState state) {
+              return AppTransitions.tabSlide(
+                routePath: state.uri.path,
+                child: const PartnerPage(),
+              );
+            },
+          ),
+          GoRoute(
+            path: AppRoutes.database,
+            builder: (BuildContext context, GoRouterState state) {
+              // Lazy import needed? No, we will add import at top.
+              return const DatabasePage();
+            },
+          ),
+          GoRoute(
+            path: AppRoutes.profile,
+            builder: (BuildContext context, GoRouterState state) {
+              return const ProfilePage();
+            },
+          ),
+           GoRoute(
+            path: AppRoutes.stats,
+            builder: (BuildContext context, GoRouterState state) {
+              // Placeholder for stats
+              return const Scaffold(body: Center(child: Text('Statistiky coming soon')));
+            },
+          ),
+          GoRoute(
+            path: AppRoutes.settings,
+            builder: (BuildContext context, GoRouterState state) {
+              // Placeholder for settings
+              return const Scaffold(body: Center(child: Text('Nastavení coming soon')));
+            },
+          ),
       ],
     ),
-    GoRoute(
-      path: AppRoutes.list,
-      pageBuilder: (BuildContext context, GoRouterState state) {
-        return AppTransitions.sharedAxisHorizontal(
-          child: _wrapWithBackButtonHandler(
-            const ListPage(),
-            showConfirmation: false,
-          ),
-        );
-      },
-    ),
-    GoRoute(
-      path: AppRoutes.database,
-      pageBuilder: (BuildContext context, GoRouterState state) {
-        return AppTransitions.fadeScale(
-          child: _wrapWithBackButtonHandler(
-            const DatabasePage(),
-            showConfirmation: false,
-          ),
-        );
-      },
-    ),
-    GoRoute(
-      path: AppRoutes.auth,
-      pageBuilder: (BuildContext context, GoRouterState state) {
-        return AppTransitions.fadeScale(
-          child: _wrapWithBackButtonHandler(
-            const AuthPage(),
-            showConfirmation: false,
-          ),
-        );
-      },
-    ),
-    GoRoute(
-      path: AppRoutes.settings,
-      pageBuilder: (BuildContext context, GoRouterState state) {
-        return AppTransitions.fadeScale(
-          child: _wrapWithBackButtonHandler(
-            const SettingsPage(),
-            showConfirmation: false,
-          ),
-        );
-      },
-    ),
-    GoRoute(
-      path: AppRoutes.profile,
-      pageBuilder: (BuildContext context, GoRouterState state) {
-        return AppTransitions.fadeScale(
-          child: _wrapWithBackButtonHandler(
-            const ProfilePage(),
-            showConfirmation: false,
-          ),
-        );
-      },
-    ),
-    GoRoute(
-      path: AppRoutes.stats,
-      pageBuilder: (BuildContext context, GoRouterState state) {
-        return AppTransitions.fadeScale(
-          child: _wrapWithBackButtonHandler(
-            const StatsPage(),
-            showConfirmation: false,
-          ),
-        );
-      },
-    ),
+
   ],
 );
 

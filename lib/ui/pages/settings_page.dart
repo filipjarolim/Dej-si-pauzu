@@ -1,14 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../core/constants/app_routes.dart';
-import '../../core/extensions/build_context_extensions.dart';
 import '../foundations/spacing.dart';
 import '../foundations/design_tokens.dart';
 import '../foundations/colors.dart';
-import '../widgets/app_scaffold.dart';
-import '../widgets/app_bottom_nav.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -18,364 +15,478 @@ class SettingsPage extends StatefulWidget {
 }
 
 class _SettingsPageState extends State<SettingsPage> {
-  bool _notificationsEnabled = true;
-  bool _darkModeEnabled = false;
+  bool _soundEnabled = true;
   bool _hapticFeedbackEnabled = true;
+  bool _notificationsEnabled = true;
+  int _defaultBreathingCycles = 5;
   String _selectedLanguage = 'Čeština';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSettings();
+  }
+
+  Future<void> _loadSettings() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _soundEnabled = prefs.getBool('sound_enabled') ?? true;
+      _hapticFeedbackEnabled = prefs.getBool('haptic_feedback_enabled') ?? true;
+      _notificationsEnabled = prefs.getBool('notifications_enabled') ?? true;
+      _defaultBreathingCycles = prefs.getInt('default_breathing_cycles') ?? 5;
+      _selectedLanguage = prefs.getString('selected_language') ?? 'Čeština';
+    });
+  }
+
+  Future<void> _saveSetting(String key, dynamic value) async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    if (value is bool) {
+      await prefs.setBool(key, value);
+    } else if (value is int) {
+      await prefs.setInt(key, value);
+    } else if (value is String) {
+      await prefs.setString(key, value);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final TextTheme text = Theme.of(context).textTheme;
-    final ColorScheme cs = Theme.of(context).colorScheme;
 
-    return AppScaffold(
+    return Scaffold(
+      backgroundColor: AppColors.white,
       appBar: AppBar(
-        title: const Text('Nastavení'),
+        backgroundColor: AppColors.white,
+        elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: const Icon(Icons.arrow_back_rounded, color: AppColors.primary),
           onPressed: () {
-            if (context.canPop()) {
-              context.pop();
-            } else {
-              context.go(AppRoutes.home);
-            }
+            HapticFeedback.lightImpact();
+            context.pop();
           },
         ),
+        title: Text(
+          'Nastavení',
+          style: text.titleLarge?.copyWith(
+            fontWeight: FontWeight.w800,
+            color: AppColors.gray900,
+          ),
+        ),
+        centerTitle: false,
       ),
-      bottomBar: const AppBottomNav(),
-      body: SingleChildScrollView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.only(top: AppSpacing.xl),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: <Widget>[
-            // Profile section
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-              child: Material(
-                color: AppColors.white,
-                borderRadius: BorderRadius.circular(DesignTokens.radiusLg),
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(DesignTokens.radiusLg),
-                  onTap: () => context.navigateToProfile(),
-                  child: Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(DesignTokens.radiusLg),
-                      border: Border.all(
-                        color: AppColors.gray200,
-                        width: DesignTokens.borderMedium,
+      body: ListView(
+        padding: const EdgeInsets.all(AppSpacing.lg),
+        children: <Widget>[
+          _buildSectionHeader('Zvuk a vibrace', text),
+          _buildSwitchTile(
+            'Zvuk',
+            'Zapnout/zapnout zvukové efekty',
+            _soundEnabled,
+            (bool value) {
+              setState(() => _soundEnabled = value);
+              _saveSetting('sound_enabled', value);
+              HapticFeedback.selectionClick();
+            },
+          ),
+          _buildSwitchTile(
+            'Haptická zpětná vazba',
+            'Vibrace při interakcích',
+            _hapticFeedbackEnabled,
+            (bool value) {
+              setState(() => _hapticFeedbackEnabled = value);
+              _saveSetting('haptic_feedback_enabled', value);
+              if (value) {
+                HapticFeedback.mediumImpact();
+              }
+            },
+          ),
+          const SizedBox(height: AppSpacing.xl),
+          _buildSectionHeader('Cvičení', text),
+          _buildSliderTile(
+            'Výchozí počet cyklů',
+            'Počet cyklů pro dýchací cvičení',
+            _defaultBreathingCycles,
+            3,
+            10,
+            (double value) {
+              setState(() => _defaultBreathingCycles = value.toInt());
+              _saveSetting('default_breathing_cycles', _defaultBreathingCycles);
+              HapticFeedback.selectionClick();
+            },
+          ),
+          const SizedBox(height: AppSpacing.xl),
+          _buildSectionHeader('Oznámení', text),
+          _buildSwitchTile(
+            'Připomínky',
+            'Denní připomínky k cvičení',
+            _notificationsEnabled,
+            (bool value) {
+              setState(() => _notificationsEnabled = value);
+              _saveSetting('notifications_enabled', value);
+              HapticFeedback.selectionClick();
+            },
+          ),
+          const SizedBox(height: AppSpacing.xl),
+          _buildSectionHeader('Aplikace', text),
+          _buildListTile(
+            'Jazyk',
+            _selectedLanguage,
+            Icons.language_rounded,
+            () {
+              HapticFeedback.selectionClick();
+              _showLanguageDialog(context, text);
+            },
+          ),
+          _buildListTile(
+            'O aplikaci',
+            'Verze 1.0.0',
+            Icons.info_outline_rounded,
+            () {
+              HapticFeedback.selectionClick();
+              _showAboutDialog(context, text);
+            },
+          ),
+          const SizedBox(height: AppSpacing.xl),
+          _buildSectionHeader('Data', text),
+          _buildListTile(
+            'Vymazat data',
+            'Smazat všechna uložená data',
+            Icons.delete_outline_rounded,
+            () {
+              HapticFeedback.mediumImpact();
+              _showClearDataDialog(context, text);
+            },
+            isDestructive: true,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionHeader(String title, TextTheme text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.md, top: AppSpacing.lg),
+      child: Text(
+        title,
+        style: text.titleSmall?.copyWith(
+          fontWeight: FontWeight.w700,
+          color: AppColors.gray700,
+          letterSpacing: 0.5,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSwitchTile(
+    String title,
+    String subtitle,
+    bool value,
+    ValueChanged<bool> onChanged,
+  ) {
+    final TextTheme text = Theme.of(context).textTheme;
+    return Container(
+      margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(DesignTokens.radiusMd),
+        border: Border.all(
+          color: AppColors.gray200,
+          width: 1,
+        ),
+      ),
+      child: SwitchListTile(
+        title: Text(
+          title,
+          style: text.titleMedium?.copyWith(
+            fontWeight: FontWeight.w600,
+            color: AppColors.gray900,
+          ),
+        ),
+        subtitle: Text(
+          subtitle,
+          style: text.bodySmall?.copyWith(
+            color: AppColors.gray600,
+          ),
+        ),
+        value: value,
+        onChanged: onChanged,
+        activeColor: AppColors.primary,
+      ),
+    );
+  }
+
+  Widget _buildSliderTile(
+    String title,
+    String subtitle,
+    int value,
+    int min,
+    int max,
+    ValueChanged<double> onChanged,
+  ) {
+    final TextTheme text = Theme.of(context).textTheme;
+    return Container(
+      margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(DesignTokens.radiusMd),
+        border: Border.all(
+          color: AppColors.gray200,
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: <Widget>[
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      title,
+                      style: text.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.gray900,
                       ),
                     ),
-                    child: Row(
-                      children: <Widget>[
-                        Container(
-                          width: 64,
-                          height: 64,
-                          decoration: BoxDecoration(
-                            color: cs.primary.withOpacity(0.08),
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: cs.primary.withOpacity(0.12),
-                              width: 2,
-                            ),
-                          ),
-                          child: Icon(
-                            Icons.person,
-                            size: 32,
-                            color: cs.primary,
-                          ),
-                        ),
-                        const SizedBox(width: AppSpacing.lg),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: <Widget>[
-                              Text(
-                                'Profil',
-                                style: text.titleLarge?.copyWith(
-                                  fontWeight: FontWeight.w800,
-                                  letterSpacing: -0.3,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                'Zobrazit a upravit profil',
-                                style: text.bodyMedium?.copyWith(
-                                  color: cs.onSurfaceVariant,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Icon(
-                          Icons.chevron_right_rounded,
-                          color: cs.onSurfaceVariant.withOpacity(0.4),
-                        ),
-                      ],
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle,
+                      style: text.bodySmall?.copyWith(
+                        color: AppColors.gray600,
+                      ),
                     ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.xs),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(DesignTokens.radiusSm),
+                ),
+                child: Text(
+                  '$value',
+                  style: text.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.primary,
                   ),
                 ),
               ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.md),
+          Slider(
+            value: value.toDouble(),
+            min: min.toDouble(),
+            max: max.toDouble(),
+            divisions: max - min,
+            label: '$value',
+            activeColor: AppColors.primary,
+            onChanged: onChanged,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildListTile(
+    String title,
+    String subtitle,
+    IconData icon,
+    VoidCallback onTap, {
+    bool isDestructive = false,
+  }) {
+    final TextTheme text = Theme.of(context).textTheme;
+    return Container(
+      margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(DesignTokens.radiusMd),
+        border: Border.all(
+          color: AppColors.gray200,
+          width: 1,
+        ),
+      ),
+      child: ListTile(
+        leading: Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: (isDestructive ? AppColors.error : AppColors.primary).withOpacity(0.1),
+          ),
+          child: Icon(
+            icon,
+            color: isDestructive ? AppColors.error : AppColors.primary,
+            size: 20,
+          ),
+        ),
+        title: Text(
+          title,
+          style: text.titleMedium?.copyWith(
+            fontWeight: FontWeight.w600,
+            color: isDestructive ? AppColors.error : AppColors.gray900,
+          ),
+        ),
+        subtitle: Text(
+          subtitle,
+          style: text.bodySmall?.copyWith(
+            color: AppColors.gray600,
+          ),
+        ),
+        trailing: Icon(
+          Icons.chevron_right_rounded,
+          color: AppColors.gray400,
+        ),
+        onTap: onTap,
+      ),
+    );
+  }
+
+  void _showLanguageDialog(BuildContext context, TextTheme text) {
+    showDialog<void>(
+      context: context,
+      builder: (BuildContext context) => AlertDialog(
+        title: Text(
+          'Vyber jazyk',
+          style: text.titleLarge?.copyWith(
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            RadioListTile<String>(
+              title: const Text('Čeština'),
+              value: 'Čeština',
+              groupValue: _selectedLanguage,
+              onChanged: (String? value) {
+                if (value != null) {
+                  setState(() => _selectedLanguage = value);
+                  _saveSetting('selected_language', value);
+                  Navigator.of(context).pop();
+                  HapticFeedback.selectionClick();
+                }
+              },
             ),
-            const SizedBox(height: AppSpacing.xl),
-            // Notifications
-            _SettingsSection(
-              title: 'Oznámení',
-              children: <Widget>[
-                _SwitchTile(
-                  title: 'Push notifikace',
-                  subtitle: 'Přijímat upozornění',
-                  value: _notificationsEnabled,
-                  onChanged: (bool value) {
-                    HapticFeedback.selectionClick();
-                    setState(() => _notificationsEnabled = value);
-                  },
-                ),
-              ],
+            RadioListTile<String>(
+              title: const Text('English'),
+              value: 'English',
+              groupValue: _selectedLanguage,
+              onChanged: (String? value) {
+                if (value != null) {
+                  setState(() => _selectedLanguage = value);
+                  _saveSetting('selected_language', value);
+                  Navigator.of(context).pop();
+                  HapticFeedback.selectionClick();
+                }
+              },
             ),
-            // Preferences
-            _SettingsSection(
-              title: 'Předvolby',
-              children: <Widget>[
-                _SwitchTile(
-                  title: 'Tmavý režim',
-                  subtitle: 'Přepnout na tmavý vzhled',
-                  value: _darkModeEnabled,
-                  onChanged: (bool value) {
-                    HapticFeedback.selectionClick();
-                    setState(() => _darkModeEnabled = value);
-                  },
-                ),
-                _SwitchTile(
-                  title: 'Haptická zpětná vazba',
-                  subtitle: 'Vibrace při interakcích',
-                  value: _hapticFeedbackEnabled,
-                  onChanged: (bool value) {
-                    HapticFeedback.selectionClick();
-                    setState(() => _hapticFeedbackEnabled = value);
-                  },
-                ),
-                _ListTile(
-                  title: 'Jazyk',
-                  subtitle: _selectedLanguage,
-                  onTap: () {
-                    HapticFeedback.selectionClick();
-                    showDialog<void>(
-                      context: context,
-                      builder: (BuildContext context) => AlertDialog(
-                        title: const Text('Vyberte jazyk'),
-                        content: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: <String>['Čeština', 'English', 'Deutsch']
-                              .map(
-                                (String lang) => ListTile(
-                                  title: Text(lang),
-                                  selected: lang == _selectedLanguage,
-                                  onTap: () {
-                                    setState(() => _selectedLanguage = lang);
-                                    Navigator.of(context).pop();
-                                  },
-                                ),
-                              )
-                              .toList(),
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ],
-            ),
-            // About
-            _SettingsSection(
-              title: 'O aplikaci',
-              children: <Widget>[
-                _ListTile(
-                  title: 'Verze',
-                  subtitle: '1.0.0',
-                ),
-                _ListTile(
-                  title: 'Kontakt',
-                  subtitle: 'support@dejsipauzu.cz',
-                  onTap: () {
-                    HapticFeedback.selectionClick();
-                    // Email functionality will be implemented
-                  },
-                ),
-                _ListTile(
-                  title: 'Ochrana soukromí',
-                  onTap: () {
-                    HapticFeedback.selectionClick();
-                    // Privacy policy functionality will be implemented
-                  },
-                ),
-                _ListTile(
-                  title: 'Podmínky použití',
-                  onTap: () {
-                    HapticFeedback.selectionClick();
-                    // Terms functionality will be implemented
-                  },
-                ),
-              ],
-            ),
-            const SizedBox(height: AppSpacing.xl),
           ],
         ),
       ),
     );
   }
-}
 
-class _SettingsSection extends StatelessWidget {
-  const _SettingsSection({
-    required this.title,
-    required this.children,
-  });
-
-  final String title;
-  final List<Widget> children;
-
-  @override
-  Widget build(BuildContext context) {
-    final TextTheme text = Theme.of(context).textTheme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.lg,
-            vertical: AppSpacing.md,
-          ),
-          child: Text(
-            title,
-            style: text.titleSmall?.copyWith(
-              fontWeight: FontWeight.w700,
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
+  void _showAboutDialog(BuildContext context, TextTheme text) {
+    showDialog<void>(
+      context: context,
+      builder: (BuildContext context) => AlertDialog(
+        title: Text(
+          'O aplikaci',
+          style: text.titleLarge?.copyWith(
+            fontWeight: FontWeight.w700,
           ),
         ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-          child: Material(
-            color: AppColors.white,
-            borderRadius: BorderRadius.circular(DesignTokens.radiusLg),
-            child: Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(DesignTokens.radiusLg),
-                border: Border.all(
-                  color: AppColors.gray200,
-                  width: DesignTokens.borderMedium,
-                ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Text(
+              'Dej si pauzu',
+              style: text.titleMedium?.copyWith(
+                fontWeight: FontWeight.w700,
               ),
-              child: Column(children: children),
             ),
-          ),
+            const SizedBox(height: AppSpacing.xs),
+            Text(
+              'Verze 1.0.0',
+              style: text.bodyMedium?.copyWith(
+                color: AppColors.gray600,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.md),
+            Text(
+              'Aplikace pro relaxaci a wellness. Dýchací cvičení, meditace a protahování pro každodenní pohodu.',
+              style: text.bodyMedium?.copyWith(
+                color: AppColors.gray700,
+              ),
+            ),
+          ],
         ),
-        const SizedBox(height: AppSpacing.lg),
-      ],
+        actions: <Widget>[
+          TextButton(
+            onPressed: () {
+              HapticFeedback.lightImpact();
+              Navigator.of(context).pop();
+            },
+            child: const Text('Zavřít'),
+          ),
+        ],
+      ),
     );
   }
-}
 
-class _SwitchTile extends StatelessWidget {
-  const _SwitchTile({
-    required this.title,
-    this.subtitle,
-    required this.value,
-    required this.onChanged,
-  });
-
-  final String title;
-  final String? subtitle;
-  final bool value;
-  final ValueChanged<bool> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    final TextTheme text = Theme.of(context).textTheme;
-    final ColorScheme cs = Theme.of(context).colorScheme;
-    return Container(
-      decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(
-            color: AppColors.gray200,
-            width: DesignTokens.borderThin,
-          ),
-        ),
-      ),
-      child: ListTile(
+  void _showClearDataDialog(BuildContext context, TextTheme text) {
+    showDialog<void>(
+      context: context,
+      builder: (BuildContext context) => AlertDialog(
         title: Text(
-          title,
-          style: text.bodyLarge?.copyWith(
-            fontWeight: FontWeight.w600,
+          'Vymazat data',
+          style: text.titleLarge?.copyWith(
+            fontWeight: FontWeight.w700,
           ),
         ),
-        subtitle: subtitle != null
-            ? Text(
-                subtitle!,
-                style: text.bodySmall?.copyWith(
-                  color: cs.onSurfaceVariant,
-                ),
-              )
-            : null,
-        trailing: Switch(
-          value: value,
-          onChanged: onChanged,
-          activeColor: cs.primary,
+        content: Text(
+          'Opravdu chcete smazat všechna uložená data? Tato akce je nevratná.',
+          style: text.bodyMedium?.copyWith(
+            color: AppColors.gray700,
+          ),
         ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () {
+              HapticFeedback.lightImpact();
+              Navigator.of(context).pop();
+            },
+            child: const Text('Zrušit'),
+          ),
+          TextButton(
+            onPressed: () async {
+              HapticFeedback.mediumImpact();
+              final SharedPreferences prefs = await SharedPreferences.getInstance();
+              await prefs.clear();
+              if (context.mounted) {
+                Navigator.of(context).pop();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Data byla vymazána'),
+                    duration: Duration(seconds: 2),
+                  ),
+                );
+              }
+            },
+            style: TextButton.styleFrom(
+              foregroundColor: AppColors.error,
+            ),
+            child: const Text('Vymazat'),
+          ),
+        ],
       ),
     );
   }
 }
-
-class _ListTile extends StatelessWidget {
-  const _ListTile({
-    required this.title,
-    this.subtitle,
-    this.onTap,
-  });
-
-  final String title;
-  final String? subtitle;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final TextTheme text = Theme.of(context).textTheme;
-    final ColorScheme cs = Theme.of(context).colorScheme;
-    return Container(
-      decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(
-            color: AppColors.gray200,
-            width: DesignTokens.borderThin,
-          ),
-        ),
-      ),
-      child: ListTile(
-        title: Text(
-          title,
-          style: text.bodyLarge?.copyWith(
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        subtitle: subtitle != null
-            ? Text(
-                subtitle!,
-                style: text.bodySmall?.copyWith(
-                  color: cs.onSurfaceVariant,
-                ),
-              )
-            : null,
-        trailing: onTap != null
-            ? Icon(
-                Icons.chevron_right_rounded,
-                color: cs.onSurfaceVariant.withOpacity(0.4),
-              )
-            : null,
-        onTap: onTap,
-      ),
-    );
-  }
-}
-

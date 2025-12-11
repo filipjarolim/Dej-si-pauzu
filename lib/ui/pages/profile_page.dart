@@ -12,6 +12,7 @@ import '../foundations/colors.dart';
 import '../widgets/app_scaffold.dart';
 import '../widgets/app_bottom_nav.dart';
 import '../widgets/app_button.dart';
+import '../widgets/staggered_entry.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -175,245 +176,270 @@ class _ProfilePageState extends State<ProfilePage> {
       bottomBar: const AppBottomNav(),
       body: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.only(top: AppSpacing.xl),
+        // Add bottom padding to account for BottomNavigationBar (approx 80 + safe area)
+        padding: EdgeInsets.only(
+          top: AppSpacing.xl,
+          bottom: 80 + MediaQuery.of(context).padding.bottom + AppSpacing.xl,
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
             // Profile picture section
-            Center(
-              child: Column(
-                children: <Widget>[
-                  Stack(
-                    children: <Widget>[
-                      Container(
-                        width: 120,
-                        height: 120,
-                        decoration: BoxDecoration(
-                          color: cs.primary.withOpacity(0.08),
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: cs.primary.withOpacity(0.12),
-                            width: 3,
+            StaggeredEntry(
+              index: 0,
+              child: Center(
+                child: Column(
+                  children: <Widget>[
+                    Stack(
+                      children: <Widget>[
+                        Container(
+                          width: 120,
+                          height: 120,
+                          decoration: BoxDecoration(
+                            color: cs.primary.withValues(alpha: 0.08),
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: cs.primary.withValues(alpha: 0.12),
+                              width: 3,
+                            ),
                           ),
-                        ),
-                        child: _currentUser?.photoUrl != null
-                            ? ClipOval(
-                                child: Image.network(
-                                  _currentUser!.photoUrl!,
-                                  width: 120,
-                                  height: 120,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (_, __, ___) => Icon(
-                                    Icons.person,
-                                    size: 64,
-                                    color: cs.primary,
+                          child: _currentUser?.photoUrl != null
+                              ? ClipOval(
+                                  child: Image.network(
+                                    _currentUser!.photoUrl!,
+                                    width: 120,
+                                    height: 120,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (_, __, ___) => Icon(
+                                      Icons.person,
+                                      size: 64,
+                                      color: cs.primary,
+                                    ),
                                   ),
+                                )
+                              : Icon(
+                                  Icons.person,
+                                  size: 64,
+                                  color: cs.primary,
                                 ),
-                              )
-                            : Icon(
-                                Icons.person,
-                                size: 64,
+                        ),
+                        if (_isEditing)
+                          Positioned(
+                            bottom: 0,
+                            right: 0,
+                            child: Container(
+                              width: 36,
+                              height: 36,
+                              decoration: BoxDecoration(
                                 color: cs.primary,
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: AppColors.white,
+                                  width: 3,
+                                ),
                               ),
-                      ),
-                      if (_isEditing)
-                        Positioned(
-                          bottom: 0,
-                          right: 0,
-                          child: Container(
-                            width: 36,
-                            height: 36,
-                            decoration: BoxDecoration(
-                              color: cs.primary,
-                              shape: BoxShape.circle,
-                              border: Border.all(
+                              child: Icon(
+                                Icons.camera_alt,
+                                size: 18,
                                 color: AppColors.white,
-                                width: 3,
                               ),
-                            ),
-                            child: Icon(
-                              Icons.camera_alt,
-                              size: 18,
-                              color: AppColors.white,
                             ),
                           ),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  if (!_isEditing)
-                    Text(
-                      'Změnit foto',
-                      style: text.labelLarge?.copyWith(
-                        color: cs.primary,
-                        fontWeight: FontWeight.w700,
-                      ),
+                      ],
                     ),
-                ],
+                    const SizedBox(height: AppSpacing.md),
+                    if (!_isEditing)
+                      Text(
+                        'Změnit foto',
+                        style: text.labelLarge?.copyWith(
+                          color: cs.primary,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                  ],
+                ),
               ),
             ),
             const SizedBox(height: AppSpacing.xxl),
             
             if (!isAuthenticated) ...<Widget>[
               // Not authenticated state
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-                child: Column(
-                  children: <Widget>[
-                    Icon(
-                      Icons.person_outline,
-                      size: 64,
-                      color: cs.onSurfaceVariant.withOpacity(0.5),
-                    ),
-                    const SizedBox(height: AppSpacing.lg),
-                    Text(
-                      'Nejsi přihlášen',
-                      style: text.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w800,
+              StaggeredEntry(
+                index: 1,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+                  child: Column(
+                    children: <Widget>[
+                      Icon(
+                        Icons.person_outline,
+                        size: 64,
+                        color: cs.onSurfaceVariant.withValues(alpha: 0.5),
                       ),
-                    ),
-                    const SizedBox(height: AppSpacing.sm),
-                    Text(
-                      'Přihlas se, abys mohl používat všechny funkce aplikace.',
-                      style: text.bodyMedium?.copyWith(
-                        color: cs.onSurfaceVariant,
+                      const SizedBox(height: AppSpacing.lg),
+                      Text(
+                        'Nejsi přihlášen',
+                        style: text.titleLarge?.copyWith(
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: AppSpacing.xl),
-                    AppButton(
-                      label: 'Přihlásit se',
-                      onPressed: () => context.go(AppRoutes.auth),
-                    ),
-                  ],
+                      const SizedBox(height: AppSpacing.sm),
+                      Text(
+                        'Přihlas se, abys mohl používat všechny funkce aplikace.',
+                        style: text.bodyMedium?.copyWith(
+                          color: cs.onSurfaceVariant,
+                          ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: AppSpacing.xl),
+                      AppButton(
+                        label: 'Přihlásit se',
+                        onPressed: () => context.go(AppRoutes.auth),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ] else ...<Widget>[
               // Form fields
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Text(
-                      'Jméno',
-                      style: text.labelLarge?.copyWith(
-                        fontWeight: FontWeight.w700,
+              StaggeredEntry(
+                index: 1,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Text(
+                        'Jméno',
+                        style: text.labelLarge?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: AppSpacing.sm),
-                    TextField(
-                      controller: _nameController,
-                      enabled: _isEditing,
-                      decoration: InputDecoration(
-                        hintText: 'Zadejte jméno',
-                        prefixIcon: const Icon(Icons.person_outline),
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.lg),
-                    Text(
-                      'Email',
-                      style: text.labelLarge?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.sm),
-                    TextField(
-                      controller: _emailController,
-                      enabled: false, // Email shouldn't be editable
-                      keyboardType: TextInputType.emailAddress,
-                      decoration: InputDecoration(
-                        hintText: 'Zadejte email',
-                        prefixIcon: const Icon(Icons.email_outlined),
-                      ),
-                    ),
-                    if (_currentUser?.provider != null) ...<Widget>[
                       const SizedBox(height: AppSpacing.sm),
-                      Row(
-                        children: <Widget>[
-                          Icon(
-                            Icons.check_circle_outline,
-                            size: 16,
-                            color: AppColors.success,
-                          ),
-                          const SizedBox(width: AppSpacing.xs),
-                          Text(
-                            'Přihlášen přes ${_currentUser!.provider == 'google' ? 'Google' : _currentUser!.provider}',
-                            style: text.bodySmall?.copyWith(
-                              color: cs.onSurfaceVariant,
-                            ),
-                          ),
-                        ],
+                      TextField(
+                        controller: _nameController,
+                        enabled: _isEditing,
+                        decoration: InputDecoration(
+                          hintText: 'Zadejte jméno',
+                          prefixIcon: const Icon(Icons.person_outline),
+                        ),
                       ),
-                    ],
-                    const SizedBox(height: AppSpacing.xl + 8),
-                    if (_isEditing) ...<Widget>[
-                      Row(
-                        children: <Widget>[
-                          Expanded(
-                            child: OutlinedButton(
-                              onPressed: () {
-                                HapticFeedback.selectionClick();
-                                setState(() {
-                                  _isEditing = false;
-                                  _loadUserData(); // Reset to original values
-                                });
-                              },
-                              style: OutlinedButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+                      const SizedBox(height: AppSpacing.lg),
+                      Text(
+                        'Email',
+                        style: text.labelLarge?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.sm),
+                      TextField(
+                        controller: _emailController,
+                        enabled: false, // Email shouldn't be editable
+                        keyboardType: TextInputType.emailAddress,
+                        decoration: InputDecoration(
+                          hintText: 'Zadejte email',
+                          prefixIcon: const Icon(Icons.email_outlined),
+                        ),
+                      ),
+                      if (_currentUser?.provider != null) ...<Widget>[
+                        const SizedBox(height: AppSpacing.sm),
+                        Row(
+                          children: <Widget>[
+                            Icon(
+                              Icons.check_circle_outline,
+                              size: 16,
+                              color: AppColors.success,
+                            ),
+                            const SizedBox(width: AppSpacing.xs),
+                            Text(
+                              'Přihlášen přes ${_currentUser!.provider == 'google' ? 'Google' : _currentUser!.provider}',
+                              style: text.bodySmall?.copyWith(
+                                color: cs.onSurfaceVariant,
                               ),
-                              child: const Text('Zrušit'),
                             ),
-                          ),
-                          const SizedBox(width: AppSpacing.md),
-                          Expanded(
-                            child: AppButton(
-                              label: _isSaving ? 'Ukládám...' : 'Uložit',
-                              onPressed: _isSaving ? null : _saveProfile,
+                          ],
+                        ),
+                      ],
+                      const SizedBox(height: AppSpacing.xl + 8),
+                      if (_isEditing) ...<Widget>[
+                        Row(
+                          children: <Widget>[
+                            Expanded(
+                              child: OutlinedButton(
+                                onPressed: () {
+                                  HapticFeedback.selectionClick();
+                                  setState(() {
+                                    _isEditing = false;
+                                    _loadUserData(); // Reset to original values
+                                  });
+                                },
+                                style: OutlinedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+                                ),
+                                child: const Text('Zrušit'),
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
-                    ] else
-                      AppButton(
-                        label: 'Upravit profil',
-                        onPressed: () {
-                          HapticFeedback.selectionClick();
-                          setState(() {
-                            _isEditing = true;
-                          });
-                        },
-                      ),
-                  ],
+                            const SizedBox(width: AppSpacing.md),
+                            Expanded(
+                              child: AppButton(
+                                label: _isSaving ? 'Ukládám...' : 'Uložit',
+                                onPressed: _isSaving ? null : _saveProfile,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ] else
+                        AppButton(
+                          label: 'Upravit profil',
+                          onPressed: () {
+                            HapticFeedback.selectionClick();
+                            setState(() {
+                              _isEditing = true;
+                              });
+                          },
+                        ),
+                    ],
+                  ),
                 ),
               ),
               const SizedBox(height: AppSpacing.xl),
               // Stats section
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-                child: Material(
-                  color: AppColors.white,
-                  borderRadius: BorderRadius.circular(DesignTokens.radiusLg),
+              StaggeredEntry(
+                index: 2,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
                   child: Container(
-                    padding: const EdgeInsets.all(20),
+                    padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(DesignTokens.radiusLg),
+                      color: AppColors.white,
+                      borderRadius: BorderRadius.circular(DesignTokens.radiusXl),
+                      // New floaty shadow for consistency
+                      boxShadow: DesignTokens.shadowSm,
                       border: Border.all(
-                        color: AppColors.gray200,
-                        width: DesignTokens.borderMedium,
+                        color: AppColors.gray100, // Subtler border
+                        width: DesignTokens.borderThin,
                       ),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: <Widget>[
-                        Text(
-                          'Statistiky',
-                          style: text.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: -0.3,
-                          ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Moje statistiky',
+                              style: text.titleMedium?.copyWith(
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: -0.3,
+                              ),
+                            ),
+                            Icon(
+                              Icons.bar_chart_rounded,
+                              color: AppColors.primary,
+                              size: 20,
+                            ),
+                          ],
                         ),
-                        const SizedBox(height: AppSpacing.lg),
+                        const SizedBox(height: AppSpacing.xl),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceAround,
                           children: <Widget>[
@@ -421,19 +447,19 @@ class _ProfilePageState extends State<ProfilePage> {
                               value: '7',
                               label: 'Dní v řadě',
                               icon: Icons.local_fire_department,
-                              color: cs.primary,
+                              color: AppColors.coral, // More distinct color
                             ),
                             _StatItem(
                               value: '24',
                               label: 'Celkem pauz',
                               icon: Icons.self_improvement,
-                              color: cs.primary,
+                              color: AppColors.violet, // More distinct color
                             ),
                             _StatItem(
                               value: '12h',
                               label: 'Celkem času',
                               icon: Icons.access_time,
-                              color: cs.primary,
+                              color: AppColors.skyBlue, // More distinct color
                             ),
                           ],
                         ),
@@ -444,37 +470,40 @@ class _ProfilePageState extends State<ProfilePage> {
               ),
               const SizedBox(height: AppSpacing.xl),
               // Sign out button
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-                child: OutlinedButton(
-                  onPressed: _isLoading ? null : _signOut,
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.error,
-                    padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
-                    side: BorderSide(color: AppColors.error),
-                  ),
-                  child: _isLoading
-                      ? SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(AppColors.error),
-                          ),
-                        )
-                      : Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: <Widget>[
-                            const Icon(Icons.logout, size: 20),
-                            const SizedBox(width: AppSpacing.sm),
-                            Text(
-                              'Odhlásit se',
-                              style: text.labelLarge?.copyWith(
-                                fontWeight: FontWeight.w700,
-                              ),
+              StaggeredEntry(
+                index: 3,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+                  child: OutlinedButton(
+                    onPressed: _isLoading ? null : _signOut,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.error,
+                      padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+                      side: BorderSide(color: AppColors.error),
+                    ),
+                    child: _isLoading
+                        ? SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(AppColors.error),
                             ),
-                          ],
-                        ),
+                          )
+                        : Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: <Widget>[
+                              const Icon(Icons.logout, size: 20),
+                              const SizedBox(width: AppSpacing.sm),
+                              Text(
+                                'Odhlásit se',
+                                style: text.labelLarge?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
+                          ),
+                  ),
                 ),
               ),
               const SizedBox(height: AppSpacing.xl),
@@ -502,34 +531,53 @@ class _StatItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final TextTheme text = Theme.of(context).textTheme;
+    
+    // Parse value for animation if it's a number
+    final int? numericValue = int.tryParse(value.replaceAll(RegExp(r'[^0-9]'), ''));
+    final String suffix = value.replaceAll(RegExp(r'[0-9]'), '');
+
     return Column(
       children: <Widget>[
         Container(
-          width: 56,
-          height: 56,
+          width: 52,
+          height: 52,
           decoration: BoxDecoration(
-            color: color.withOpacity(0.08),
+            color: color.withValues(alpha: 0.1), // Softer background
             shape: BoxShape.circle,
-            border: Border.all(
-              color: color.withOpacity(0.12),
-              width: 1,
-            ),
+            // Removed border for cleaner look
           ),
-          child: Icon(icon, size: 28, color: color),
+          child: Icon(icon, size: 24, color: color),
         ),
-        const SizedBox(height: AppSpacing.sm),
-        Text(
-          value,
-          style: text.titleLarge?.copyWith(
-            fontWeight: FontWeight.w800,
-            letterSpacing: -0.5,
-          ),
-        ),
-        const SizedBox(height: 4),
+        const SizedBox(height: AppSpacing.md),
+        numericValue != null
+            ? TweenAnimationBuilder<int>(
+                tween: IntTween(begin: 0, end: numericValue),
+                duration: const Duration(milliseconds: 1500),
+                curve: Curves.easeOutExpo,
+                builder: (context, value, child) => Text(
+                  '$value$suffix',
+                  style: text.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.5,
+                    height: 1,
+                  ),
+                ),
+              )
+            : Text(
+                value,
+                style: text.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.5,
+                  height: 1,
+                ),
+              ),
+        const SizedBox(height: 6),
         Text(
           label,
           style: text.bodySmall?.copyWith(
             color: Theme.of(context).colorScheme.onSurfaceVariant,
+            fontWeight: FontWeight.w500,
+            fontSize: 11,
           ),
           textAlign: TextAlign.center,
         ),

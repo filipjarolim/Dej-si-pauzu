@@ -2,7 +2,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:mongo_dart/mongo_dart.dart';
 
+import 'package:uuid/uuid.dart';
 import 'app_service.dart';
+import 'sync_service.dart';
 
 /// MongoDB database service
 class DatabaseService extends AppService {
@@ -19,11 +21,12 @@ class DatabaseService extends AppService {
   /// Check if connected
   bool get isConnected => _isConnected;
 
+
   @override
   Future<void> initialize() async {
     try {
       final String? uri = dotenv.env['MONGODB_URI'];
-      final String? dbName = dotenv.env['MONGODB_DATABASE_NAME'] ?? 'dejsipauzu';
+      final String dbName = dotenv.env['MONGODB_DATABASE_NAME'] ?? 'dejsipauzu';
 
       if (uri == null || uri.isEmpty) {
         debugPrint('Warning: MONGODB_URI is not set in .env file');
@@ -93,6 +96,7 @@ class DatabaseService extends AppService {
           debugPrint('Make sure your MongoDB Atlas cluster allows connections from your IP address');
           debugPrint('Also verify that the username and password are correct');
         }
+
         rethrow;
       }
     } catch (e) {
@@ -100,6 +104,9 @@ class DatabaseService extends AppService {
       debugPrint('MongoDB connection error: $e');
       // Don't rethrow - allow app to continue without database
     }
+    
+    // Initialize Sync Service
+    await SyncService().initialize();
   }
 
   /// Get a collection
@@ -110,10 +117,27 @@ class DatabaseService extends AppService {
     return _database!.collection(name);
   }
 
-  /// Insert a document
-  Future<WriteResult> insertOne(String collection, Map<String, dynamic> document) async {
-    final DbCollection coll = getCollection(collection);
-    return await coll.insertOne(document);
+  /// Insert a document (Offline-First)
+  Future<void> insertOne(String collection, Map<String, dynamic> document) async {
+    // 1. Add ID if missing
+    if (!document.containsKey('_id')) {
+      document['_id'] = const Uuid().v4();
+    }
+
+    // 2. Queue operation
+    final op = SyncOperation(
+      id: const Uuid().v4(),
+      type: SyncOperationType.insert,
+      collection: collection,
+      data: document,
+      timestamp: DateTime.now(),
+    );
+    
+    await SyncService().addOperation(op);
+    debugPrint('Queued insert for $collection');
+    
+    // 3. Return immediately (Optimistic)
+    return;
   }
 
   /// Insert multiple documents
@@ -194,23 +218,25 @@ class DatabaseService extends AppService {
     return await coll.findOne(filter ?? {});
   }
 
-  /// Update one document
-  Future<WriteResult> updateOne(
+  /// Update one document (Offline-First)
+  Future<void> updateOne(
     String collection,
     Map<String, dynamic> filter,
     Map<String, dynamic> update, {
     bool upsert = false,
   }) async {
-    final DbCollection coll = getCollection(collection);
-    final ModifierBuilder modifier = ModifierBuilder();
-    update.forEach((String key, dynamic value) {
-      modifier.set(key, value);
-    });
-    return await coll.updateOne(
-      filter,
-      modifier,
-      upsert: upsert,
-    );
+      // Queue operation
+      final op = SyncOperation(
+        id: const Uuid().v4(),
+        type: SyncOperationType.update,
+        collection: collection,
+        data: update,
+        filter: filter,
+        timestamp: DateTime.now(),
+      );
+      
+      await SyncService().addOperation(op);
+      debugPrint('Queued update for $collection');
   }
 
   /// Update many documents

@@ -8,7 +8,7 @@ class AppConstants {
   static const String appTagline = 'Zastav se. Nadechni. Všechno bude v pořádku.';
 
   // Timing constants
-  static const Duration splashMinDuration = Duration(milliseconds: 2000);
+  static const Duration splashMinDuration = Duration(milliseconds: 1500);
   static const Duration refreshDelay = Duration(milliseconds: 700);
   static const Duration animationDuration = Duration(milliseconds: 300);
   static const Duration debounceDelay = Duration(milliseconds: 300);
@@ -19,7 +19,7 @@ class AppConstants {
   static const int maxRetries = 3;
 
   // Refresh indicator
-  static const double refreshTriggerDistance = 80.0;
-  static const double refreshMaxDistance = 120.0;
+  static const double refreshTriggerDistance = 100.0; // Increased for less sensitivity
+  static const double refreshMaxDistance = 140.0;
 }
 

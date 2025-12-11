@@ -22,6 +22,7 @@ class AppRoutes {
   // Dev routes
   static const String database = '/database';
   static const String auth = '/auth';
+  static const String debugChat = '/debug_chat';
 
   /// Get route name from path
   static String? routeName(String path) {

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../foundations/spacing.dart';
-import '../foundations/design_tokens.dart';
 import '../foundations/colors.dart';
 
 /// A thin wrapper around Scaffold that standardizes safe areas and padding.
@@ -12,20 +11,22 @@ class AppScaffold extends StatelessWidget {
     required this.body,
     this.bottomBar,
     this.padding = const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+    this.backgroundColor,
   });
 
   final PreferredSizeWidget? appBar;
   final Widget body;
   final Widget? bottomBar;
   final EdgeInsets padding;
+  final Color? backgroundColor;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.white,
+      backgroundColor: backgroundColor ?? AppColors.white,
       appBar: appBar,
       body: Container(
-        color: AppColors.white,
+        color: backgroundColor ?? AppColors.white,
         child: SafeArea(
           child: Padding(
             padding: padding,

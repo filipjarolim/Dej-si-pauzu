@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../foundations/motion.dart';
 
 class Shimmer extends StatefulWidget {
   const Shimmer({super.key, required this.child});
@@ -40,9 +39,9 @@ class _ShimmerState extends State<Shimmer> with SingleTickerProviderStateMixin {
               begin: Alignment.centerLeft,
               end: Alignment.centerRight,
               colors: <Color>[
-                cs.surfaceVariant,
-                cs.surfaceVariant.withOpacity(0.5),
-                cs.surfaceVariant,
+                cs.surfaceContainerHighest,
+                cs.surfaceContainerHighest.withOpacity(0.5),
+                cs.surfaceContainerHighest,
               ],
               stops: <double>[
                 (start - 0.25).clamp(0.0, 1.0),
@@ -75,7 +74,7 @@ class SkeletonBox extends StatelessWidget {
         width: width,
         height: height,
         decoration: BoxDecoration(
-          color: cs.surfaceVariant,
+          color: cs.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(borderRadius),
         ),
       ),

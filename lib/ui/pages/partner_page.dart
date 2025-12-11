@@ -1,15 +1,15 @@
-import 'dart:math' as math;
-
+import 'dart:ui'; // For ImageFilter
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-
-import '../foundations/spacing.dart';
-import '../foundations/design_tokens.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:go_router/go_router.dart';
+import '../../core/services/groq_service.dart';
+import '../../core/services/navbar_service.dart';
+import '../../core/services/chat_history_service.dart';
 import '../foundations/colors.dart';
-import '../foundations/motion.dart';
-import '../widgets/app_scaffold.dart';
-import '../widgets/app_button.dart';
-import '../widgets/frosted_app_bar.dart';
+import '../widgets/chat_components.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class PartnerPage extends StatefulWidget {
   const PartnerPage({super.key});
@@ -19,523 +19,868 @@ class PartnerPage extends StatefulWidget {
 }
 
 class _PartnerPageState extends State<PartnerPage> with TickerProviderStateMixin {
-  int? _expandedIndex;
-  late AnimationController _stackController;
-  final List<AnimationController> _cardControllers = <AnimationController>[];
+  // Animation Controllers
+  late AnimationController _animController;
+  late AnimationController _reactionController;
+  late Animation<double> _breatheAnimation;
+  late Animation<double> _floatAnimation;
+  late Animation<double> _jumpAnimation;
   
-  // Random rotations for each card (slight)
-  final List<double> _rotations = <double>[
-    -0.05, // Slight left rotation
-    0.03,  // Slight right rotation
-    -0.02, // Slight left rotation
-  ];
+  // Chat State
+  final GroqService _groqService = GroqService(dotenv.env['GROQ_API_KEY'] ?? '');
+  final ChatHistoryService _historyService = ChatHistoryService();
+  final TextEditingController _textController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
+  final GlobalKey<AnimatedListState> _listKey = GlobalKey<AnimatedListState>();
+  final List<({String text, bool isUser})> _messages = [];
 
-  // Only 3 mascot personalities
-  final List<Map<String, dynamic>> _personalities = <Map<String, dynamic>>[
-    <String, dynamic>{
-      'id': 'wise',
-      'name': 'Moudrý',
-      'description': 'Trpělivý a moudrý rádce, který ti pomůže najít odpovědi na tvé otázky',
-      'image': 'menubarchar.png',
-      'color': AppColors.deepBlue,
-    },
-    <String, dynamic>{
-      'id': 'cheerful',
-      'name': 'Veselý',
-      'description': 'Plný energie a optimismu, vždy připravený tě rozveselit a povzbudit',
-      'image': 'menubarchar2.png',
-      'color': AppColors.yellow,
-    },
-    <String, dynamic>{
-      'id': 'calm',
-      'name': 'Klidný',
-      'description': 'Uklidňující přítel, který ti pomůže najít vnitřní mír a rovnováhu',
-      'image': 'menubarchar3.png',
-      'color': AppColors.mintGreen,
-    },
-  ];
+  bool _isLoading = false;
+  bool _hasStartedChat = false;
+  int _currentGenerationId = 0; // To track active generation for cancellation
 
   @override
   void initState() {
     super.initState();
-    _stackController = AnimationController(
+    
+    // Idle Animation
+    _animController = AnimationController(
       vsync: this,
-      duration: AppMotion.medium,
-    )..forward();
+      duration: const Duration(seconds: 5),
+    )..repeat(reverse: true);
 
-    // Create animation controller for each card
-    for (int i = 0; i < _personalities.length; i++) {
-      final AnimationController controller = AnimationController(
-        vsync: this,
-        duration: const Duration(milliseconds: 700),
-        reverseDuration: const Duration(milliseconds: 700),
-      );
-      _cardControllers.add(controller);
-      // Stagger initial animations
-      Future<void>.delayed(Duration(milliseconds: 150 * i), () {
-        if (mounted) controller.forward();
-      });
+    _breatheAnimation = Tween<double>(begin: 1.0, end: 1.03).animate(
+      CurvedAnimation(parent: _animController, curve: Curves.easeInOutQuad),
+    );
+
+    _floatAnimation = Tween<double>(begin: 0.0, end: -8.0).animate(
+      CurvedAnimation(parent: _animController, curve: Curves.easeInOutQuad),
+    );
+
+    // Reaction Animation (Happy Jump)
+    _reactionController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
+
+    _jumpAnimation = TweenSequence<double>([
+      TweenSequenceItem(tween: Tween(begin: 0.0, end: -20.0).chain(CurveTween(curve: Curves.easeOut)), weight: 40),
+      TweenSequenceItem(tween: Tween(begin: -20.0, end: 5.0).chain(CurveTween(curve: Curves.easeInOut)), weight: 30),
+      TweenSequenceItem(tween: Tween(begin: 5.0, end: 0.0).chain(CurveTween(curve: Curves.bounceOut)), weight: 30),
+    ]).animate(_reactionController);
+    
+    _loadHistory();
+  }
+
+  Future<void> _loadHistory() async {
+    final history = await _historyService.loadMessages();
+    if (history.isNotEmpty && mounted) {
+       setState(() {
+         _messages.addAll(history);
+         _hasStartedChat = true;
+       });
+       // If we have history, maybe we don't auto-hide navbar immediately until user interacts? 
+       // Or we can just let them read. Let's start with navbar shown.
+       WidgetsBinding.instance.addPostFrameCallback((_) {
+         // Scroll to bottom after loading
+         if (_scrollController.hasClients) {
+            _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+         }
+       });
     }
   }
 
   @override
   void dispose() {
-    _stackController.dispose();
-    for (final AnimationController controller in _cardControllers) {
-      controller.dispose();
-    }
+    NavbarService.instance.show(); // Ensure navbar is shown when leaving
+    _animController.dispose();
+    _reactionController.dispose();
+    _textController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
-  void _expandCard(int index) {
-    HapticFeedback.selectionClick();
+  void _startChat() {
+    NavbarService.instance.hide(); // Hide navbar when chat starts
     setState(() {
-      if (_expandedIndex == index) {
-        // Collapse current card
-        _expandedIndex = null;
-        _cardControllers[index].reverse();
-      } else {
-        // Expand new card
-        final int? previousIndex = _expandedIndex;
-        _expandedIndex = index;
-        if (previousIndex != null) {
-          _cardControllers[previousIndex].reverse();
-        }
-        _cardControllers[index].forward();
+      _hasStartedChat = true;
+    });
+  }
+
+
+
+  void _endChat() {
+    FocusScope.of(context).unfocus();
+    NavbarService.instance.show(); // Show navbar
+    setState(() {
+      _hasStartedChat = false;
+      _isLoading = false;
+      _currentGenerationId++; // Cancel any pending
+      // We don't clear messages so history remains, but user sees Welcome screen
+      // If they click Start, history is still there. 
+      // If we want to "reset" visually, we might need to scroll up or something, 
+      // but showing Welcome screen covers it. 
+      // Actually, if we just toggle _hasStartedChat, the AnimatedSwitcher will switch back to _buildCallToAction.
+    });
+  }
+
+  Future<void> _sendMessage([String? textOverride]) async {
+    final text = textOverride ?? _textController.text.trim();
+    if (text.isEmpty) return;
+
+    if (textOverride == null) {
+      _textController.clear();
+    }
+    
+    setState(() {
+      _hasStartedChat = true; 
+      _messages.add((text: text, isUser: true));
+      _isLoading = true;
+      _currentGenerationId++; // Start new generation scope
+    });
+    
+    // Animate insertion
+    _listKey.currentState?.insertItem(_messages.length - 1);
+    _scrollToBottom();
+    
+    // Trigger Character Reaction
+    _reactionController.forward(from: 0.0);
+    
+    // Ensure immersive mode
+    NavbarService.instance.hide();
+
+    try {
+      HapticFeedback.selectionClick();
+      // SystemSound.play(SystemSoundType.click); // Subtle sound
+
+      final int myGenerationId = _currentGenerationId;
+      
+      final response = await _groqService.sendMessage(text);
+      
+      // Check if cancelled
+      if (mounted && _currentGenerationId == myGenerationId) {
+        setState(() {
+          _messages.add((text: response, isUser: false));
+          _isLoading = false;
+        });
+
+        _listKey.currentState?.insertItem(_messages.length - 1);
+        HapticFeedback.lightImpact(); // Success haptic
+        // Play success sound if available
+        
+        // Save History
+        _historyService.saveMessages(_messages);
+        
+        _scrollToBottom();
+      }
+    } catch (e) {
+      if (mounted && _currentGenerationId == _currentGenerationId) { // Check ID also here
+        setState(() {
+          _messages.add((text: 'Omlouvám se, něco se pokazilo: $e', isUser: false));
+          _isLoading = false;
+        });
+        _listKey.currentState?.insertItem(_messages.length - 1);
+        _scrollToBottom();
+      }
+    }
+  }
+
+  void _stopGeneration() {
+    if (!_isLoading) return;
+    HapticFeedback.mediumImpact();
+    setState(() {
+      _isLoading = false;
+      _currentGenerationId++; // Invalidate current generation
+    });
+  }
+
+  void _scrollToBottom() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOutCubic,
+        );
       }
     });
   }
 
-  void _handleSwipe(int index, DragUpdateDetails details) {
-    // Optional: Add visual feedback during swipe
-    // Could add slight rotation or translation based on swipe direction
-  }
 
-  void _startChat() {
-    if (_expandedIndex == null) return;
-    HapticFeedback.mediumImpact();
-    // Show success feedback
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Začínáš konverzaci s ${_personalities[_expandedIndex!]['name']}'),
-        behavior: SnackBarBehavior.floating,
-        backgroundColor: _personalities[_expandedIndex!]['color'] as Color,
-        duration: const Duration(seconds: 2),
-      ),
-    );
-    // Navigate to chat screen with selected personality
-    // This will be implemented later
-  }
 
   @override
   Widget build(BuildContext context) {
+    final Size size = MediaQuery.of(context).size;
     final TextTheme text = Theme.of(context).textTheme;
-    final ColorScheme cs = Theme.of(context).colorScheme;
-    final Size screenSize = MediaQuery.of(context).size;
-    final double cardWidth = screenSize.width - (AppSpacing.lg * 2);
+    final double keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
+    final bool isKeyboardOpen = keyboardHeight > 0;
 
     return Scaffold(
-      backgroundColor: AppColors.white,
-      extendBodyBehindAppBar: true,
-      appBar: FrostedAppBar(
-        title: const Text('AI Parťák'),
-        backgroundColor: AppColors.white,
-      ),
-      body: SafeArea(
-        top: false,
-        child: FadeTransition(
-          opacity: _stackController,
-          child: SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: EdgeInsets.only(
-              top: MediaQuery.of(context).padding.top + kToolbarHeight + AppSpacing.xl,
-              left: AppSpacing.lg,
-              right: AppSpacing.lg,
-              bottom: AppSpacing.xl,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: <Widget>[
-                // Header
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Text(
-                      'Vyber si svého parťáka',
-                      style: text.headlineLarge?.copyWith(
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: -1,
-                        fontSize: 32,
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.sm),
-                    Text(
-                      'Klikni na kartu a objev svého ideálního společníka',
-                      style: text.bodyLarge?.copyWith(
-                        color: cs.onSurfaceVariant,
-                        height: 1.6,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: AppSpacing.xxl + 8),
-                // Stacked cards - fixed height container
-                SizedBox(
-                  height: _expandedIndex != null ? 600 : 500,
-                  child: Stack(
-                    alignment: Alignment.topCenter,
-                    clipBehavior: Clip.none,
-                    children: List<Widget>.generate(
-                      _personalities.length,
-                      (int index) {
-                        return _buildStackedCard(
-                          index,
-                          text,
-                          cs,
-                          cardWidth,
-                          screenSize.width,
-                        );
-                      },
-                    ),
+      backgroundColor: Colors.black,
+      resizeToAvoidBottomInset: false, // Handle layout manually
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          // 1. Background Image
+          Image.asset(
+            'assets/images/sceneaichat.jpeg',
+            fit: BoxFit.cover,
+          ),
+
+          // 2. Gradient Overlay - UPDATED: Removed heavy dark overlay
+          // Replaced with a very subtle tint to ensure text readability without gloom
+          Positioned.fill(
+            child: GestureDetector(
+              onTap: () {
+                FocusScope.of(context).unfocus(); 
+                NavbarService.instance.toggle(); 
+              },
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.transparent,
+                      Colors.white.withOpacity(0.1), // Very subtle light bleed
+                      Colors.white.withOpacity(0.2),
+                    ],
+                    stops: const [0.0, 0.7, 1.0],
                   ),
                 ),
-                // Swipe hint
-                if (_expandedIndex == null) ...[
-                  const SizedBox(height: AppSpacing.lg),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: <Widget>[
-                      Icon(
-                        Icons.swipe_up,
-                        size: 16,
-                        color: cs.onSurfaceVariant.withOpacity(0.5),
-                      ),
-                      const SizedBox(width: AppSpacing.xs),
-                      Text(
-                        'Swipe nahoru nebo klikni na kartu',
-                        style: text.bodySmall?.copyWith(
-                          color: cs.onSurfaceVariant.withOpacity(0.5),
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
-                ] else ...[
-                  // Collapse hint when expanded
-                  const SizedBox(height: AppSpacing.md),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: <Widget>[
-                      Icon(
-                        Icons.swipe_down,
-                        size: 14,
-                        color: cs.onSurfaceVariant.withOpacity(0.4),
-                      ),
-                      const SizedBox(width: AppSpacing.xs),
-                      Text(
-                        'Swipe dolů pro zavření',
-                        style: text.bodySmall?.copyWith(
-                          color: cs.onSurfaceVariant.withOpacity(0.4),
-                          fontSize: 11,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-                const SizedBox(height: AppSpacing.xxl),
-                // Start chat button
-                if (_expandedIndex != null) ...[
-                  AppButton(
-                    label: 'Začít konverzaci s ${_personalities[_expandedIndex!]['name']}',
-                    onPressed: _startChat,
-                  ),
-                  const SizedBox(height: AppSpacing.xl),
-                ],
-              ],
+              ),
             ),
           ),
-        ),
+
+          // 3. Main Content Layer
+          AnimatedPositioned(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeOutCubic,
+            child: SafeArea(
+              bottom: false, 
+              child: Column(
+                children: [
+                  // --- TOP SECTION: Character & Welcome ---
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 300),
+                    height: _hasStartedChat || isKeyboardOpen 
+                        ? size.height * 0.35 
+                        : size.height * 0.55, 
+                    constraints: const BoxConstraints(minHeight: 200),
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        AnimatedBuilder(
+                          animation: Listenable.merge([_animController, _reactionController]),
+                          builder: (context, child) {
+                            return Transform.translate(
+                              offset: Offset(0, _floatAnimation.value + _jumpAnimation.value),
+                              child: Transform.scale(
+                                scale: _breatheAnimation.value + (_jumpAnimation.value < 0 ? 0.05 : 0),
+                                child: GestureDetector(
+                                  onTap: () {
+                                    HapticFeedback.mediumImpact();
+                                    _reactionController.forward(from: 0.0);
+                                  },
+                                  child: Image.asset(
+                                    'assets/images/charmeditating.png',
+                                    fit: BoxFit.contain,
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // --- MIDDLE SECTION: Chat / Welcome ---
+                  Expanded(
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 500),
+                      transitionBuilder: (Widget child, Animation<double> animation) {
+                        return FadeTransition(
+                          opacity: animation,
+                          child: SlideTransition(
+                            position: Tween<Offset>(
+                              begin: const Offset(0, 0.1), 
+                              end: Offset.zero,
+                            ).animate(animation),
+                            child: child,
+                          ),
+                        );
+                      },
+                      child: _hasStartedChat
+                          ? _buildChatList()
+                          : _buildCallToAction(text),
+                    ),
+                  ),
+
+                  // --- BOTTOM SECTION: Input ---
+                  if (_hasStartedChat) 
+                    _buildInputArea()
+                  else 
+                     const SizedBox(height: 120), 
+                ],
+              ),
+            ),
+          ),
+
+          // 4. Close / Menu Button Overlay
+          if (_hasStartedChat && !isKeyboardOpen)
+             Positioned(
+               top: MediaQuery.of(context).padding.top + 8,
+               right: 16,
+               child: _buildCloseButton(),
+             ),
+        ],
       ),
     );
   }
 
-  Widget _buildStackedCard(
-    int index,
-    TextTheme text,
-    ColorScheme cs,
-    double cardWidth,
-    double screenWidth,
-  ) {
-    final Map<String, dynamic> personality = _personalities[index];
-    final bool isExpanded = _expandedIndex == index;
-    final bool isOtherExpanded = _expandedIndex != null && _expandedIndex != index;
-    final AnimationController controller = _cardControllers[index];
-    final double rotation = _rotations[index];
+  Widget _buildCallToAction(TextTheme text) {
+    final hour = DateTime.now().hour;
+    String greeting = 'Ahoj, Filipe!';
+    if (hour < 12) greeting = 'Dobré ráno, Filipe!';
+    else if (hour < 18) greeting = 'Dobré odpoledne, Filipe!';
+    else greeting = 'Dobrý večer, Filipe!';
 
-    // Stack positioning - higher cards placed lower, showing more height
-    // Top card (index 0) shows most, bottom card (index 2) shows least
-    final double baseOffset = 60.0; // More visible height
-    final double stackOffset = baseOffset * index; // Higher index = lower position
-    
-    // Animation values - no scale or opacity changes, all cards same size
-    final double collapsedHeight = 180.0; // More visible peek height
-    final double expandedHeight = 550.0;
-    
-    // Calculate side offset when other card is expanded - move completely off screen
-    final double sideOffset = isOtherExpanded 
-        ? (index < _expandedIndex! ? -screenWidth * 1.2 : screenWidth * 1.2)
-        : 0.0;
-
-    return AnimatedBuilder(
-      animation: Listenable.merge(_cardControllers),
-      builder: (BuildContext context, Widget? child) {
-        // Get progress from the relevant controller
-        double progress = 0.0;
-        if (isExpanded) {
-          progress = Curves.easeInOutCubicEmphasized.transform(controller.value);
-        } else if (isOtherExpanded) {
-          progress = Curves.easeInOutCubicEmphasized.transform(_cardControllers[_expandedIndex!].value);
-        }
-        
-        // Smooth animations with emphasized curve
-        final double animatedOffset = isExpanded
-            ? stackOffset + ((0 - stackOffset) * progress)
-            : stackOffset;
-        final double animatedHeight = isExpanded
-            ? collapsedHeight + ((expandedHeight - collapsedHeight) * progress)
-            : collapsedHeight;
-        final double animatedRotation = isExpanded
-            ? rotation + ((0 - rotation) * progress) // Straighten when expanded
-            : rotation;
-        final double animatedSideOffset = isOtherExpanded
-            ? sideOffset * progress
-            : 0.0;
-
-        return Positioned(
-          top: animatedOffset,
-          left: animatedSideOffset,
-          right: -animatedSideOffset,
-            child: Transform.rotate(
-            angle: animatedRotation,
-            child: GestureDetector(
-              onHorizontalDragEnd: (DragEndDetails details) {
-                // Swipe right to expand, swipe left to collapse
-                final double velocity = details.velocity.pixelsPerSecond.dx;
-                if (velocity > 300 && !isExpanded) {
-                  HapticFeedback.mediumImpact();
-                  _expandCard(index);
-                } else if (velocity < -300 && isExpanded) {
-                  HapticFeedback.lightImpact();
-                  _expandCard(index); // Collapse
-                }
-              },
-              onVerticalDragEnd: (DragEndDetails details) {
-                // Swipe up to expand, swipe down to collapse
-                final double velocity = details.velocity.pixelsPerSecond.dy;
-                if (velocity < -300 && !isExpanded) {
-                  HapticFeedback.mediumImpact();
-                  _expandCard(index);
-                } else if (velocity > 300 && isExpanded) {
-                  HapticFeedback.lightImpact();
-                  _expandCard(index); // Collapse
-                }
-                          },
-                          child: Container(
-                width: cardWidth,
-                height: animatedHeight,
-                            decoration: BoxDecoration(
-                  color: personality['color'] as Color, // No transparency
-                  borderRadius: BorderRadius.circular(DesignTokens.radiusXxl), // More rounded
-                  boxShadow: <BoxShadow>[
-                    BoxShadow(
-                      color: (personality['color'] as Color).withOpacity(0.4),
-                      blurRadius: isExpanded ? 40 : 20,
-                      offset: Offset(0, isExpanded ? 15 : 8),
-                      spreadRadius: isExpanded ? 3 : 1,
-                    ),
-                  ],
-                ),
-                child: Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(DesignTokens.radiusXxl),
-                    onTap: () => _expandCard(index),
-                    splashColor: AppColors.white.withOpacity(0.1),
-                    highlightColor: Colors.transparent,
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(DesignTokens.radiusXxl),
-                      child: AnimatedSwitcher(
-                        duration: AppMotion.fast,
-                        transitionBuilder: (Widget child, Animation<double> animation) {
-                          return FadeTransition(
-                            opacity: animation,
-                            child: ScaleTransition(
-                              scale: Tween<double>(begin: 0.95, end: 1.0).animate(animation),
-                              child: child,
-                            ),
-                          );
-                        },
-                        child: isExpanded
-                            ? _buildExpandedContent(personality, text, cs, key: ValueKey<int>(index))
-                            : _buildPeekContent(personality, text, cs, index, key: ValueKey<int>(index + 100)),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return SingleChildScrollView(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              minHeight: constraints.maxHeight,
+            ),
+            child: IntrinsicHeight(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const Spacer(), 
+                    // Frosted White Card for Greeting
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(32),
+                      child: BackdropFilter(
+                        filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+                        child: Container(
+                          padding: const EdgeInsets.all(24),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.85), // High opacity for "Card" feel
+                            borderRadius: BorderRadius.circular(32),
+                            border: Border.all(color: Colors.white),
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFF2C3E50).withOpacity(0.1),
+                                blurRadius: 30,
+                                offset: const Offset(0, 10),
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            children: [
+                              Text(
+                                greeting,
+                                style: text.headlineMedium?.copyWith(
+                                  color: const Color(0xFF1E293B), // Slate 800 - Very high contrast
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: -0.5,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 12),
+                              Text(
+                                'Jak se dnes cítíš? Vyber si téma\nnebo začni psát cokoliv.',
+                                textAlign: TextAlign.center,
+                                style: text.bodyLarge?.copyWith(
+                                  color: const Color(0xFF475569), // Slate 600
+                                  height: 1.5,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              const SizedBox(height: 24),
+                              
+                              // Quick Intent Chips
+                              Wrap(
+                                spacing: 12,
+                                runSpacing: 12,
+                                alignment: WrapAlignment.center,
+                                children: [
+                                  _buildQuickChip('😰 Cítím stres', 'Ahoj, cítím se dnes ve stresu a potřebuji uklidnit.', const Color(0xFFFF6B6B)), 
+                                  _buildQuickChip('😴 Nemohu spát', 'Nemohu usnout, máš nějakou radu?', const Color(0xFF4ECDC4)), 
+                                  _buildQuickChip('😤 Jsem naštvaný', 'Něco mě naštvalo a potřebuji to ventilovat.', const Color(0xFFFFD93D)), 
+                                  _buildQuickChip('🧘 Chci meditovat', 'Chtěl bych si dát krátkou meditaci.', const Color(0xFFA06CD5)), 
+                                  _buildQuickChip('👋 Jen tak pokecat', 'Ahoj, jak se máš?', const Color(0xFF6C5CE7)), 
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
                     ),
-                  ),
+
+                    const SizedBox(height: 100), // Space for bottom nav
+                  ],
                 ),
-                                    ),
-                                  ),
-                                ),
+              ),
+            ),
+          ),
         );
       },
     );
   }
 
-  Widget _buildPeekContent(
-    Map<String, dynamic> personality,
-    TextTheme text,
-    ColorScheme cs,
-    int index, {
-    required Key key,
-  }) {
-    final Color cardColor = personality['color'] as Color;
-
-    return Container(
-      key: key,
-      decoration: BoxDecoration(
-        color: cardColor,
-        borderRadius: BorderRadius.circular(DesignTokens.radiusXxl),
-      ),
-      child: Stack(
-        clipBehavior: Clip.none, // Allow overflow for icon
-        children: <Widget>[
-          // Card background
-          Positioned.fill(
-            child: Container(
-              decoration: BoxDecoration(
-                color: cardColor,
-                borderRadius: BorderRadius.circular(DesignTokens.radiusXxl),
-                            ),
-                          ),
-                        ),
-          // Peek content - name and icon going over border
-          Positioned(
-            top: AppSpacing.md,
-            left: AppSpacing.lg,
-            right: AppSpacing.lg,
-            child: Row(
-              children: <Widget>[
-                    // Mascot image going over border
-                    Transform.translate(
-                      offset: const Offset(-8, -8), // Go over border
-                      child: Image.asset(
-                        personality['image'] as String,
-                        width: 64,
-                        height: 64,
-                        fit: BoxFit.contain,
-                      ),
-                    ),
-                const SizedBox(width: AppSpacing.md),
-                // Name
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.only(top: 8),
-                    child: Text(
-                      personality['name'] as String,
-                      style: text.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.white,
-                        fontSize: 24,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ),
-                // Arrow indicator
-                Padding(
-                  padding: const EdgeInsets.only(top: 8),
-                  child: Icon(
-                    Icons.arrow_forward_ios,
-                    color: AppColors.white.withOpacity(0.8),
-                    size: 20,
-                  ),
-                ),
-              ],
-                    ),
-                  ),
-                ],
+  Widget _buildQuickChip(String label, String prompt, Color color) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => _startChatWithPrompt(prompt),
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          decoration: BoxDecoration(
+            color: Colors.white, // Solid white background for pop
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: color.withOpacity(0.3), width: 1.5), // Colored border
+            boxShadow: [
+              BoxShadow(
+                color: color.withOpacity(0.2), // Colored shadow
+                blurRadius: 8,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              color: const Color(0xFF2D3436), // Dark text inside chip
+              fontWeight: FontWeight.w700,
+              fontSize: 14,
+            ),
+          ),
+        ),
       ),
     );
   }
 
-  Widget _buildExpandedContent(
-    Map<String, dynamic> personality,
-    TextTheme text,
-    ColorScheme cs, {
-    required Key key,
-  }) {
-    final Color cardColor = personality['color'] as Color;
+  void _startChatWithPrompt(String prompt) {
+    _startChat();
+    _sendMessage(prompt);
+  }
 
-    return Container(
-      key: key,
-      padding: const EdgeInsets.all(AppSpacing.xl),
-      decoration: BoxDecoration(
-        color: cardColor,
-        borderRadius: BorderRadius.circular(DesignTokens.radiusXxl),
-      ),
-      child: SingleChildScrollView(
-        physics: const AlwaysScrollableScrollPhysics(),
+  Widget _buildChatList() {
+    return AnimatedList(
+      key: _listKey,
+      controller: _scrollController,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+      initialItemCount: _messages.length,
+      itemBuilder: (context, index, animation) {
+        final message = _messages[index];
+        return ChatBubble(
+          text: message.text,
+          isUser: message.isUser,
+          animation: animation,
+          onLongPress: () => _showMessageActions(context, index),
+        );
+      },
+    );
+  }
+
+  void _showMessageActions(BuildContext context, int index) {
+    final message = _messages[index];
+    
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: BoxDecoration(
+          color: const Color(0xFF1E1E1E),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          border: Border(top: BorderSide(color: Colors.white.withOpacity(0.1))),
+        ),
+        padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
           mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-          // Large mascot image
-          Image.asset(
-            personality['image'] as String,
-            width: 140,
-            height: 140,
-            fit: BoxFit.contain,
-          ),
-            const SizedBox(height: AppSpacing.lg),
-            // Name
+          children: [
+            // Copy
+            ListTile(
+              leading: const Icon(Icons.copy_rounded, color: Colors.white),
+              title: const Text('Kopírovat', style: TextStyle(color: Colors.white)),
+              onTap: () {
+                Clipboard.setData(ClipboardData(text: message.text));
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Zpráva zkopírována'), duration: Duration(seconds: 1)),
+                );
+              },
+            ),
+            // Delete
+            ListTile(
+              leading: const Icon(Icons.delete_rounded, color: AppColors.coral),
+              title: const Text('Smazat', style: TextStyle(color: AppColors.coral)),
+              onTap: () {
+                Navigator.pop(context);
+                _deleteMessage(index);
+              },
+            ),
+            // Regenerate (Only if it's the last AI message)
+            if (!message.isUser && index == _messages.length - 1)
+               ListTile(
+                leading: const Icon(Icons.refresh_rounded, color: AppColors.skyBlue),
+                title: const Text('Zkusit znovu', style: TextStyle(color: AppColors.skyBlue)),
+                onTap: () {
+                  Navigator.pop(context);
+                  _deleteMessage(index); // Remove the bad response
+                  // Find last user message
+                  if (index > 0) {
+                     final lastUserMsg = _messages[index - 1]; // Assuming alternating, but better safe
+                     // Actually, just find the last user message
+                     _regenerateLastUserMessage();
+                  }
+                },
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _deleteMessage(int index) {
+    final removed = _messages.removeAt(index);
+    _listKey.currentState?.removeItem(
+      index,
+      (context, animation) => SizeTransition(
+        sizeFactor: animation,
+        child: FadeTransition(
+          opacity: animation,
+          child: ChatBubble(text: removed.text, isUser: removed.isUser, animation: animation),
+        ),
+      ),
+    );
+     _historyService.saveMessages(_messages);
+  }
+
+  Future<void> _regenerateLastUserMessage() async {
+    if (_messages.isEmpty) return;
+    
+    // Find last user message
+    int lastUserIndex = _messages.lastIndexWhere((m) => m.isUser);
+    if (lastUserIndex != -1) {
+       final lastMsg = _messages[lastUserIndex];
+       setState(() => _isLoading = true);
+        try {
+           final response = await _groqService.sendMessage(lastMsg.text);
+           if (mounted) {
+              setState(() {
+                _messages.add((text: response, isUser: false));
+                _isLoading = false;
+              });
+              _listKey.currentState?.insertItem(_messages.length - 1);
+              HapticFeedback.lightImpact();
+              _historyService.saveMessages(_messages);
+              _scrollToBottom();
+           }
+        } catch (e) {
+             if (mounted) {
+              setState(() {
+                _messages.add((text: 'Chyba: $e', isUser: false));
+                _isLoading = false;
+              });
+              _listKey.currentState?.insertItem(_messages.length - 1);
+            }
+        }
+    }
+  }
+
+  void _showHistoryActions() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: BoxDecoration(
+          color: const Color(0xFF1E1E1E),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(2))),
+            ),
+            const SizedBox(height: 24),
             Text(
-              personality['name'] as String,
-              style: text.headlineMedium?.copyWith(
-                fontWeight: FontWeight.w900,
-                color: AppColors.white,
-                fontSize: 32,
-                letterSpacing: -0.5,
+              'Osobnost Parťáka',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(color:Colors.white, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
+            // Persona Selector
+            SizedBox(
+              height: 100,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                children: [
+                   _buildPersonaCard('zen', 'Zen Mistr', '🧘', const Color(0xFF4CA1AF)),
+                   const SizedBox(width: 12),
+                   _buildPersonaCard('friend', 'Kamarád', '🤝', const Color(0xFF6C5CE7)),
+                   const SizedBox(width: 12),
+                   _buildPersonaCard('coach', 'Kouč', '🔥', const Color(0xFFFF6B6B)),
+                ],
               ),
             ),
-            const SizedBox(height: AppSpacing.md),
-            // Description
-            Text(
-              personality['description'] as String,
-              style: text.bodyLarge?.copyWith(
-                color: AppColors.white.withOpacity(0.95),
-                height: 1.6,
-                fontSize: 16,
-              ),
-              textAlign: TextAlign.center,
+            const Divider(color: Colors.white12, height: 32),
+            
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.delete_forever_rounded, color: AppColors.coral),
+              title: const Text('Vymazat historii', style: TextStyle(color: AppColors.coral)),
+              onTap: () {
+                Navigator.pop(context);
+                _showClearConfirmation();
+              },
             ),
-            const SizedBox(height: AppSpacing.xl),
-            // Check indicator
-            Container(
-              width: 56,
-              height: 56,
-              decoration: BoxDecoration(
-                color: AppColors.white.withOpacity(0.25),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.check,
-                color: AppColors.white,
-                size: 32,
-              ),
+             ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.restart_alt_rounded, color: AppColors.skyBlue),
+              title: const Text('Nové téma', style: TextStyle(color: AppColors.skyBlue)),
+              onTap: () {
+                Navigator.pop(context);
+                _groqService.clearHistory();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Parťák zapomněl předchozí kontext.')),
+                );
+              },
             ),
           ],
         ),
       ),
+    );
+  }
+  
+  String _selectedPersona = 'zen';
+
+  Widget _buildPersonaCard(String key, String title, String emoji, Color color) {
+    final bool isSelected = _selectedPersona == key;
+    return GestureDetector(
+      onTap: () {
+        HapticFeedback.selectionClick();
+        setState(() {
+          _selectedPersona = key;
+        });
+        _groqService.setPersona(key);
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Přepnuto na: $title $emoji')
+          )
+        );
+      },
+      child: Container(
+        width: 100,
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: isSelected ? color.withOpacity(0.2) : Colors.white.withOpacity(0.05),
+          border: Border.all(
+            color: isSelected ? color : Colors.white.withOpacity(0.1),
+            width: 2,
+          ),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(emoji, style: const TextStyle(fontSize: 24)),
+            const SizedBox(height: 8),
+            Text(title, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showClearConfirmation() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1E1E1E),
+        title: const Text('Opravdu smazat?', style: TextStyle(color: Colors.white)),
+        content: const Text('Tato akce je nevratná.', style: TextStyle(color: Colors.white70)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Zrušit'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              setState(() {
+                _messages.clear();
+                _hasStartedChat = false; 
+                // Return to welcome screen if empty
+              });
+              _historyService.clearHistory();
+              _groqService.clearHistory();
+            },
+            child: const Text('Smazat', style: TextStyle(color: AppColors.coral)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCloseButton() {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // History/Menu Button
+        ClipRRect(
+          borderRadius: BorderRadius.circular(20),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: Colors.white.withOpacity(0.1)),
+              ),
+              child: IconButton(
+                icon: const Icon(Icons.history_rounded, color: Colors.white),
+                onPressed: () {
+                  HapticFeedback.lightImpact();
+                  _showHistoryActions();
+                },
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        // Close Button
+        ClipRRect(
+          borderRadius: BorderRadius.circular(20),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: Colors.white.withOpacity(0.1)),
+              ),
+              child: IconButton(
+                icon: const Icon(Icons.close_rounded, color: Colors.white),
+                onPressed: () {
+                  HapticFeedback.lightImpact();
+                  _endChat();
+                },
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildInputArea() {
+    // Dynamic bottom padding:
+    // When keyboard is open: minimal padding (12)
+    // When closed: Navbar height (~80) + Safe Area Bottom + buffer
+    final double safeAreaBottom = MediaQuery.of(context).padding.bottom;
+    const double navBarHeight = 80.0; 
+    final double keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
+    
+    // Reduced bottom padding to bring input closer to navbar
+    final double bottomPadding = keyboardHeight > 0 
+        ? 12.0 
+        : (navBarHeight + safeAreaBottom - 8.0); // Subtracted to reduce visual gap
+
+    return ValueListenableBuilder<bool>(
+      valueListenable: NavbarService.instance.isVisible,
+      builder: (context, isNavbarVisible, child) {
+        final double bottomPadding = keyboardHeight > 0 
+            ? 12.0 
+            : (isNavbarVisible ? (navBarHeight + safeAreaBottom - 8.0) : (safeAreaBottom + 12.0));
+
+        return Container(
+          padding: EdgeInsets.only(left: 16, right: 16, top: 12, bottom: bottomPadding),
+          // child is passed from builder
+          child: child,
+        );
+      },
+      child: Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Expanded(
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white, // Solid White Pill
+                  borderRadius: BorderRadius.circular(30),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: TextField(
+                  controller: _textController,
+                  // Roboto ensures full Latin Extended support for Czech diacritics
+                  style: GoogleFonts.roboto(
+                    color: const Color(0xFF2C3E50), 
+                    fontSize: 18,
+                    fontWeight: FontWeight.w500,
+                  ), 
+                  keyboardType: TextInputType.multiline,
+                  minLines: 1,
+                  maxLines: 4,
+                  cursorColor: AppColors.primary,
+                  decoration: InputDecoration( // Removed hints to be cleaner or keep simple
+                    hintText: 'Napiš zprávu...',
+                    hintStyle: const TextStyle(color: Color(0xFF90A4AE)), // Slate Grey Hint
+                    border: InputBorder.none,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                    isDense: true,
+                    // Voice Input Icon
+                    suffixIcon: IconButton(
+                       icon: const Icon(Icons.mic_none_rounded, color: AppColors.primary),
+                       onPressed: () {
+                          // Placeholder for Voice Input
+                          ScaffoldMessenger.of(context).showSnackBar(
+                             const SnackBar(content: Text('Hlasové zadávání bude brzy dostupné! 🎤'))
+                          );
+                       },
+                    ),
+                  ),
+                  textCapitalization: TextCapitalization.sentences,
+                  onSubmitted: (_) => _sendMessage(),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            // Floating Send Button
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              child: FloatingActionButton.small(
+                onPressed: _isLoading ? null : () => _sendMessage(),
+                backgroundColor: _isLoading ? Colors.grey.withOpacity(0.3) : AppColors.primary, // Use Brand Color
+                elevation: 4, // Add shadow
+                child: _isLoading 
+                    ? InkWell(
+                        onTap: _stopGeneration,
+                        child: const SizedBox(
+                          width: 24, 
+                          height: 24, 
+                          child: Icon(Icons.stop_rounded, color: Colors.white, size: 20)
+                        ),
+                      )
+                    : const Icon(Icons.arrow_upward, color: Colors.white),
+              ),
+            ),
+          ],
+        ),
     );
   }
 }

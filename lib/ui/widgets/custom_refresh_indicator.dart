@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../core/constants/app_constants.dart';
 import 'refresh_roulette.dart';
@@ -23,6 +24,48 @@ class _CustomRefreshIndicatorState extends State<CustomRefreshIndicator> {
   double _pullProgress = 0.0;
   double _overscroll = 0.0;
   bool _hasTriggeredRefresh = false;
+  double _smoothedOverscroll = 0.0; // Smoothed value for less sensitive response
+  Timer? _decayTimer;
+
+  void _startDecayAnimation() {
+    _decayTimer?.cancel();
+    _decayTimer = Timer.periodic(const Duration(milliseconds: 16), (Timer timer) {
+      if (!mounted || _isRefreshing) {
+        timer.cancel();
+        return;
+      }
+      
+      // Gradual decay - slower fade out
+      _smoothedOverscroll = _smoothedOverscroll * 0.92; // Slow decay
+      final double progress = (_smoothedOverscroll / AppConstants.refreshTriggerDistance).clamp(0.0, 1.0);
+      
+      if (_smoothedOverscroll < 0.5) {
+        timer.cancel();
+        if (mounted) {
+          setState(() {
+            _pullProgress = 0.0;
+            _overscroll = 0.0;
+            _smoothedOverscroll = 0.0;
+            _hasTriggeredRefresh = false;
+          });
+        }
+      } else if (mounted) {
+        setState(() {
+          _pullProgress = progress;
+        });
+      }
+    });
+  }
+
+  void _animateDecay() {
+    _startDecayAnimation();
+  }
+
+  @override
+  void dispose() {
+    _decayTimer?.cancel();
+    super.dispose();
+  }
 
   Future<void> _handleRefresh() async {
     if (_isRefreshing) return;
@@ -44,6 +87,7 @@ class _CustomRefreshIndicatorState extends State<CustomRefreshIndicator> {
             _isRefreshing = false;
             _pullProgress = 0.0;
             _overscroll = 0.0;
+            _smoothedOverscroll = 0.0;
             _hasTriggeredRefresh = false;
           });
         }
@@ -63,9 +107,12 @@ class _CustomRefreshIndicatorState extends State<CustomRefreshIndicator> {
           final double overscroll = atTop ? -metrics.pixels : 0.0;
           
           if (overscroll > 0) {
-            // User is pulling down - show blue bar immediately
+            // User is pulling down - smooth the overscroll for less sensitive response
             _overscroll = overscroll;
-            final double progress = (overscroll / AppConstants.refreshTriggerDistance).clamp(0.0, 1.0);
+            _decayTimer?.cancel(); // Cancel decay when pulling
+            // Smooth transition - reduces sensitivity by 50% (less sensitive)
+            _smoothedOverscroll = _smoothedOverscroll * 0.5 + overscroll * 0.5;
+            final double progress = (_smoothedOverscroll / AppConstants.refreshTriggerDistance).clamp(0.0, 1.0);
             
             // Always update to show the bar - no threshold check
             if (_pullProgress != progress) {
@@ -74,12 +121,11 @@ class _CustomRefreshIndicatorState extends State<CustomRefreshIndicator> {
               });
             }
           } else if (!_isRefreshing && _pullProgress > 0) {
-            // User scrolled back up (not during refresh)
+            // User scrolled back up (not during refresh) - cancel decay timer
+            _decayTimer?.cancel();
             if (!_hasTriggeredRefresh) {
-              setState(() {
-                _pullProgress = 0.0;
-                _overscroll = 0.0;
-              });
+              // Start smooth fade out
+              _startDecayAnimation();
             }
           }
         } else if (notification is OverscrollNotification) {
@@ -87,7 +133,10 @@ class _CustomRefreshIndicatorState extends State<CustomRefreshIndicator> {
           final double overscroll = notification.overscroll < 0 ? -notification.overscroll : 0.0;
           if (overscroll > 0) {
             _overscroll = overscroll;
-            final double progress = (overscroll / AppConstants.refreshTriggerDistance).clamp(0.0, 1.0);
+            _decayTimer?.cancel(); // Cancel decay when pulling
+            // Smooth transition - reduces sensitivity by 50% (less sensitive)
+            _smoothedOverscroll = _smoothedOverscroll * 0.5 + overscroll * 0.5;
+            final double progress = (_smoothedOverscroll / AppConstants.refreshTriggerDistance).clamp(0.0, 1.0);
             if (_pullProgress != progress) {
               setState(() {
                 _pullProgress = progress;
@@ -96,15 +145,12 @@ class _CustomRefreshIndicatorState extends State<CustomRefreshIndicator> {
             }
         } else if (notification is ScrollEndNotification && !_isRefreshing) {
           // User released - check if we should trigger refresh
-          if (_overscroll >= AppConstants.refreshTriggerDistance && !_hasTriggeredRefresh) {
+          // Use smoothed value for trigger to prevent accidental refreshes
+          if (_smoothedOverscroll >= AppConstants.refreshTriggerDistance && !_hasTriggeredRefresh) {
             _handleRefresh();
-          } else if (_overscroll < AppConstants.refreshTriggerDistance) {
-            // Reset if not enough pull
-            setState(() {
-              _pullProgress = 0.0;
-              _overscroll = 0.0;
-              _hasTriggeredRefresh = false;
-            });
+          } else if (_smoothedOverscroll < AppConstants.refreshTriggerDistance) {
+            // Smooth fade out - gradual decay over time
+            _animateDecay();
           }
         }
         
@@ -132,9 +178,10 @@ class _CustomRefreshIndicatorState extends State<CustomRefreshIndicator> {
               child: RepaintBoundary(
                 child: AnimatedOpacity(
                     opacity: (_pullProgress > 0.0 || _isRefreshing) ? 1.0 : 0.0,
-                    duration: const Duration(milliseconds: 100),
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.easeOutCubic,
                     child: RefreshRoulette(
-                      refreshOffset: _isRefreshing ? AppConstants.refreshTriggerDistance : _overscroll,
+                      refreshOffset: _isRefreshing ? AppConstants.refreshTriggerDistance : _smoothedOverscroll,
                       isRefreshing: _isRefreshing,
                     ),
                     ),
